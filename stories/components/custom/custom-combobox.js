@@ -1,4 +1,5 @@
-import { ComboBox, html, nothing } from '../../../src';
+import { ComboBox } from '../../../src/exports/custom-ui.js';
+import { html, nothing } from '../../../src/exports/vendors/lit.js';
 
 export class CustomCombobox extends ComboBox {
     renderSearchInput() {

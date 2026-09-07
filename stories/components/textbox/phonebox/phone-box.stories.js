@@ -1,4 +1,4 @@
-import { defineComponent } from '../../../../dist/typed-ui-with-lit.js';
+import { defineComponent } from '../../../../dist/custom-ui.js';
 import { createAttrType, inputBaseArgTypes, textBoxEventTypes } from '../../../utilities/common-arg-types.js';
 import { Phonebox } from '../../../utilities/register.js';
 import PhoneNational from '../../custom/phone-national-with-flag.js';

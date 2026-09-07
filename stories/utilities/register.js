@@ -2,9 +2,11 @@
 // Guarded to avoid "already defined" errors during HMR.
 
 import { html, render } from 'lit';
-import * as TypedUI from '../../dist/typed-ui.js';
+import * as TypedUI from '../../dist/custom-ui.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { ifDefined, isEmpty } from '../../src/modules/utilities.js';
+
+const defineComponent = TypedUI.defineComponent;
 
 defineComponent('check-box', TypedUI.CheckBox);
 defineComponent('text-box', TypedUI.TextBox);
@@ -183,12 +185,6 @@ export const createForm = (mainElement, elementComment) => {
 
     return form;
 };
-
-function defineComponent(name, constructor) {
-    if (!customElements.get(name)) {
-        customElements.define(name, constructor);
-    }
-}
 
 function elementFromTemplate(tpl) {
     try {

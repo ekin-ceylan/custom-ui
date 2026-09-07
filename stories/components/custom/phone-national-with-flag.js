@@ -1,6 +1,6 @@
 import { isEmpty } from '../../../src/modules/utilities.js';
 import { html, nothing } from 'lit';
-import { ComboBox, defineComponent, LightComponentBase, TextControlBase } from '../../../src/index.js';
+import { defineComponent, LightComponentBase, TextControlBase } from '../../../src/exports/custom-ui.js';
 
 export default class PhoneNational extends LightComponentBase {
     static get properties() {
@@ -130,7 +130,7 @@ class PhoneIntl extends TextControlBase {
     }
 }
 
-defineComponent('combo-box', ComboBox);
+// defineComponent('combo-box', ComboBox);
 defineComponent('phone-intl', PhoneIntl);
 
 class CountryPhone {

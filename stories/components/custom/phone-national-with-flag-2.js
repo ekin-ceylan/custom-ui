@@ -2,7 +2,7 @@ import { defineComponent, ifDefined, isEmpty } from '../../../src/modules/utilit
 import { CustomCombobox } from './custom-combobox.js';
 import { html, nothing } from 'lit';
 import UniqueIdGeneratorMixin from '../../../src/mixins/unique-id-generator-mixin.js';
-import { lightMixins, TextControlBase } from '../../../src/index.js';
+import { lightMixins, TextControlBase } from '../../../src/exports/custom-ui.js';
 
 export default class PhoneNational2 extends lightMixins(UniqueIdGeneratorMixin) {
     static get properties() {

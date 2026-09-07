@@ -2,7 +2,7 @@ import { createAttrType, createEventType } from '../../../utilities/common-arg-t
 import { Pagination } from '../../../utilities/register.js';
 import '../../../assets/styles/pagination.css';
 import '../../../assets/styles/custom.css';
-import { defineComponent } from '../../../../dist/typed-ui.js';
+import { defineComponent } from '../../../../dist/custom-ui.js';
 import { CustomPagination2, CustomPagination3, CustomPagination4, CustomPagination5, CustomPagination6 } from '../../custom/custom-pagination.js';
 
 export default {

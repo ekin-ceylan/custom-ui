@@ -1,5 +1,6 @@
-import { html, nothing, Pagination } from '../../../src';
-import { stringFormat } from '../../../src/modules/utilities';
+import { Pagination } from '../../../src/exports/custom-ui.js';
+import { html, nothing } from '../../../src/exports/vendors/lit.js';
+import { stringFormat } from '../../../src/modules/utilities.js';
 
 // Same button
 export class CustomPagination2 extends Pagination {
