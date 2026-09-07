@@ -215,10 +215,10 @@ describe('Reset tests', () => {
         }
 
         if (resetType === 'component') {
-            await fixture.host.reset();
+            fixture.host.reset();
             await fixture.host.updateComplete;
         } else {
-            await fixture.reset.click();
+            fixture.reset.click();
             await new Promise(resolve => requestAnimationFrame(resolve));
         }
 

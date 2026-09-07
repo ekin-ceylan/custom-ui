@@ -328,7 +328,7 @@ this.#syncValueAfterOptionsChange();
     /** @override @protected @returns {import('lit').TemplateResult} */
     render() {
         return html`${this.renderLabel()}
-            <div>
+            <div data-role="container">
                 <select
                     ${spread(this.getScopedAttrs('select'))}
                     id=${this.fieldId}

@@ -26,6 +26,10 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
     #imageForm = null;
     #showSourceCode = false; // Kaynak kodu göster/gizle durumu
 
+    get resetValue() {
+        return this.getAttribute('value') || this.#slotContent || '';
+    }
+
     /** Undo button title from locale messages */
     get undoButtonTitle() {
         return this.localeMessages.undoButtonTitle;
