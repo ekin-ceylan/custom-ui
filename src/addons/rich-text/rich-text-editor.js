@@ -20,6 +20,8 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         return {
             ...super.properties,
             description: { type: Object, attribute: false },
+            maxlength: { type: Number },
+            minlength: { type: Number },
         };
     }
 
@@ -55,6 +57,22 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         return `${this.componentName}-description-${this.uniqueId}`;
     }
 
+    /**
+     * Returns the validation message for the minlength constraint.
+     * @returns {string}
+     */
+    get minLengthValidationMessage() {
+        return this.localeMessages.minlength(this.label, this.minlength);
+    }
+
+    /**
+     * Returns the validation message for the maxlength constraint.
+     * @returns {string}
+     */
+    get maxLengthValidationMessage() {
+        return this.localeMessages.maxlength(this.label, this.maxlength);
+    }
+
     /** Undo button title from locale messages */
     get undoButtonTitle() {
         return this.localeMessages.undoButtonTitle;
@@ -79,6 +97,17 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
     }
 
     // #endregion STATICS, FIELDS, GETTERS
+
+    constructor() {
+        super();
+
+        /** @type {string | HTMLElement | Text | undefined} The description text or HTML element for the textarea */
+        this.description = undefined;
+        /** @type {number | undefined} The maximum length of the input value */
+        this.maxlength = undefined;
+        /** @type {number | undefined} The minimum length of the input value */
+        this.minlength = undefined;
+    }
 
     connectedCallback() {
         super.connectedCallback();
@@ -122,6 +151,21 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         // });
     }
 
+    /**
+     * @param {import('lit').PropertyValues} changedProperties Map of changed properties with old values
+     * @protected
+     * @override
+     * - Calls `super.updated()` to ensure proper Lit lifecycle.
+     * - Checks if `readonly` or `disabled` properties have changed and updates the editor's editable state accordingly.
+     */
+    updated(changedProperties) {
+        super.updated(changedProperties);
+
+        if (changedProperties.has('readonly') || changedProperties.has('disabled')) {
+            this.#editor?.setEditable(!this.readonly && !this.disabled);
+        }
+    }
+
     // #region INTERNAL HOOKS
 
     /**
@@ -154,11 +198,21 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         if (currentHtml !== newValue) {
             this.#editor.commands.setContent(newValue, { emitUpdate: false, parseOptions: { preserveWhitespace: true } });
             this.#onEditorUpdate(this.#editor);
+            this.#checkValidity(true);
 
             return true;
         }
 
         return false;
+    }
+
+    /** @override */
+    validate(value) {
+        if (this.required && !value) return this.requiredValidationMessage;
+        if (value?.length > 0 && value?.length < this.minlength) return this.minLengthValidationMessage;
+        if (value?.length > this.maxlength) return this.maxLengthValidationMessage;
+
+        return '';
     }
 
     setupFirstInteraction() {
@@ -309,9 +363,11 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
             extensions: [starterKitExtension, attrExtension, ...elementExtensions],
             content: this.value,
             injectCSS: false,
+            editable: !this.readonly && !this.disabled,
             onUpdate: ({ editor }) => this.#onEditorUpdate(editor),
             onTransaction: () => this.requestUpdate(), // Her işlemde component'i güncelle
             onFocus: () => (this.inputElement.value = formatEditorContent(this.value)),
+            onBlur: () => this.#onBlur(),
         });
 
         this.#onEditorUpdate(this.#editor);
@@ -453,6 +509,7 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
     }
 
     #focusEditor() {
+        if (this.disabled) return;
         if (this.#showSourceCode) this.inputElement.focus();
         else this.#editor.commands.focus();
     }
@@ -552,6 +609,8 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
                     ?required=${this.required}
                     spellcheck="false"
                     inputmode="text"
+                    maxlength=${ifDefined(this.maxlength)}
+                    minlength=${ifDefined(this.minlength)}
                     ?data-has-value=${this.value}
                     @input=${this.#onInput}
                     @blur=${this.#onBlur}

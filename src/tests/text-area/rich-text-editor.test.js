@@ -248,14 +248,27 @@ describe('Rich text editor - Form Integration', () => {
         expect(getEditorElement(fixture.host).innerHTML).toBe('<p>Initial</p>');
     });
 
-    it('FORM-007 prevents editing while disabled', async () => {
+    it('FORM-007 prevents editing through the editor while disabled', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Initial</p>" disabled></rich-text-editor>');
 
         const editorElement = getEditorElement(fixture.host);
         await fixture.user.type(editorElement, 'Changed');
         await fixture.host.updateComplete;
 
-        // expect(fixture.host.editor.isEditable).toBe(false);
+        expect(editorElement.isContentEditable).toBe(false);
+        expect(fixture.host.value).toBe('<p>Initial</p>');
+    });
+
+    it('FORM-019 prevents editing through the source textarea while disabled', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Initial</p>" disabled></rich-text-editor>');
+        const sourceToggle = fixture.querySelector('button[title="Kaynak Kodu Göster"]');
+
+        await fixture.user.click(sourceToggle);
+        await fixture.user.type(fixture.input, 'Changed');
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.disabled).toBe(true);
+        expect(fixture.input.value).toBe('<p>Initial</p>');
         expect(fixture.host.value).toBe('<p>Initial</p>');
     });
 
@@ -265,14 +278,26 @@ describe('Rich text editor - Form Integration', () => {
         expect(new FormData(fixture.form).has('description')).toBe(false);
     });
 
-    it('FORM-009 prevents editing while readonly', async () => {
+    it('FORM-009 prevents editing through the editor while readonly', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Initial</p>" readonly></rich-text-editor>');
 
         const editorElement = getEditorElement(fixture.host);
         await fixture.user.type(editorElement, 'Changed');
         await fixture.host.updateComplete;
 
-        expect(fixture.host.editor.isEditable).toBe(false);
+        expect(fixture.host.value).toBe('<p>Initial</p>');
+    });
+
+    it('FORM-020 prevents editing through the source textarea while readonly', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Initial</p>" readonly></rich-text-editor>');
+        const sourceToggle = fixture.querySelector('button[title="Kaynak Kodu Göster"]');
+
+        await fixture.user.click(sourceToggle);
+        await fixture.user.type(fixture.input, 'Changed');
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.readOnly).toBe(true);
+        expect(fixture.input.value).toBe('<p>Initial</p>');
         expect(fixture.host.value).toBe('<p>Initial</p>');
     });
 
@@ -321,14 +346,44 @@ describe('Rich text editor - Form Integration', () => {
         expect(fixture.input.validity.valid).toBe(true);
     });
 
-    it('FORM-015 enforces maxlength', async () => {
+    it('FORM-015 allows exceeding maxlength while editing and shows an error on blur', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="5"></rich-text-editor>');
         const editorElement = getEditorElement(fixture.host);
         await fixture.user.type(editorElement, '123456');
         await fixture.host.updateComplete;
 
-        expect(editorElement.textContent).toBe('12345');
+        expect(editorElement.textContent).toBe('123456');
+        expect(fixture.host.value).toBe('<p>123456</p>');
+        expect(fixture.error).toBeNull();
+
+        await fixture.user.tab();
+        await fixture.host.updateComplete;
+
+        expect(fixture.error.innerText).toContain('en fazla');
+    });
+
+    it('FORM-017 prevents source input from exceeding maxlength', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="5"></rich-text-editor>');
+        const sourceToggle = fixture.querySelector('button[title="Kaynak Kodu Göster"]');
+
+        await fixture.user.click(sourceToggle);
+        await fixture.user.type(fixture.input, '123456');
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.value).toBe('12345');
         expect(fixture.host.value).toBe('<p>12345</p>');
+    });
+
+    it('FORM-018 shows a maxlength error after a programmatic assignment', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="5"></rich-text-editor>');
+
+        fixture.host.value = '<p>123456</p>';
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('<p>123456</p>');
+
+        await fixture.host.updateComplete;
+        expect(fixture.error.innerText).toContain('en fazla');
     });
 
     it('FORM-016 removes the limit when maxlength is removed', async () => {
@@ -735,7 +790,7 @@ describe('Rich text editor - Markdown Conversions', () => {
 
 /** @return {HTMLElement | null} */
 function getEditorElement(host) {
-    return host.querySelector('[data-role="editor"] [contenteditable="true"]');
+    return host.querySelector('[data-role="editor"] [contenteditable]');
 }
 
 /*
@@ -768,16 +823,20 @@ function getEditorElement(host) {
 * [x] FORM-004 — Kullanıcı tarafından değiştirilmiş değer submit edilir.
 * [x] FORM-005 — `form.reset()` başlangıç değerini geri yükler.
 * [x] FORM-006 — Reset sonrası editor DOM'u da başlangıç değerine döner.
-* [x] FORM-007 — `disabled` durumda edit yapılamaz.
+* [x] FORM-007 — `disabled` durumda editor üzerinden edit yapılamaz.
 * [x] FORM-008 — `disabled` durumda değer form submit'e dahil edilmez.
-* [x] FORM-009 — `readonly` durumda içerik değiştirilemez.
+* [x] FORM-009 — `readonly` durumda editor üzerinden içerik değiştirilemez.
 * [x] FORM-010 — `readonly` durumda değer form submit'e dahil edilir.
 * [x] FORM-011 — `required` + boş editor invalid olur.
 * [x] FORM-012 — `required` + `<p></p>` invalid olur.
 * [x] FORM-013 — Gerçek içerik girildiğinde validity düzelir.
 * [x] FORM-014 — Programatik `value` değişimi validity durumunu günceller.
-* [x] FORM-015 — `maxlength` tanımlıysa limit uygulanır.
+* [x] FORM-015 — Editörde `maxlength` aşılabilir, blur sonrasında hata gösterilir.
 * [x] FORM-016 — `maxlength` kaldırıldığında limit kaldırılır.
+* [x] FORM-017 — Source textarea'da `maxlength` aşımı engellenir.
+* [x] FORM-018 — Programatik `maxlength` aşımında hata gösterilir.
+* [x] FORM-019 — `disabled` durumda source textarea üzerinden edit yapılamaz.
+* [x] FORM-020 — `readonly` durumda source textarea üzerinden edit yapılamaz.
 
 ---
 
