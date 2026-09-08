@@ -14,6 +14,15 @@ import createElementExtensions from './modules/element-extensions.js';
  * Provides a rich text editing interface with support for images, links, and various text formatting options.
  */
 export default class RichTextEditor extends mixins(StandardControlBase, SlotCollectorMixin) {
+    // #region STATICS, FIELDS, GETTERS
+
+    static get properties() {
+        return {
+            ...super.properties,
+            description: { type: Object, attribute: false },
+        };
+    }
+
     /** @type {Editor | null} */
     #editor = null;
     #slotContent = '';
@@ -28,6 +37,22 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
 
     get resetValue() {
         return this.getAttribute('value') || this.#slotContent || '';
+    }
+
+    /**
+     * Returns the reference to the native input element within the component. Caches the reference after the first query for performance optimization.
+     * @returns {HTMLTextAreaElement | null}
+     */
+    get inputElement() {
+        if (this.#cachedInput === undefined) {
+            this.#cachedInput = this.renderRoot?.querySelector('textarea[data-role="source"]');
+        }
+
+        return this.#cachedInput;
+    }
+
+    get descriptionId() {
+        return `${this.componentName}-description-${this.uniqueId}`;
     }
 
     /** Undo button title from locale messages */
@@ -53,17 +78,7 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         return 'p';
     }
 
-    /**
-     * Returns the reference to the native input element within the component. Caches the reference after the first query for performance optimization.
-     * @returns {HTMLTextAreaElement | null}
-     */
-    get inputElement() {
-        if (this.#cachedInput === undefined) {
-            this.#cachedInput = this.renderRoot?.querySelector('textarea[data-role="source"]');
-        }
-
-        return this.#cachedInput;
-    }
+    // #endregion STATICS, FIELDS, GETTERS
 
     connectedCallback() {
         super.connectedCallback();
@@ -116,20 +131,13 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
      * @override
      */
     validateNode(node, slotName) {
-        if (slotName !== 'default') return true;
-
-        if (!isEmpty(this.value)) {
-            console.warn('Value is already set via property. Ignoring slotted nodes.');
-            return false;
+        if (slotName === 'default') {
+            return this.#validateDefaultNode(node);
         }
-
-        if (node.nodeType === Node.TEXT_NODE) {
-            this.#slotContent += node.textContent.trim() ?? '';
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            this.#slotContent += /** @type {HTMLElement} */ (node).outerHTML ?? '';
+        if (slotName === 'description') {
+            return this.#validateDescriptionNode(node);
         }
-
-        return false;
+        return true;
     }
 
     afterSlotsBinded(hasProjectedContent) {
@@ -159,51 +167,7 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
 
     // #endregion INTERNAL HOOKS
 
-    #initEditor() {
-        this.#editorContainer = this.renderRoot.querySelector('[data-role="editor"]');
-        if (!this.#editorContainer || this.#editor) return;
-
-        const starterKitExtension = StarterKit.configure({
-            link: {
-                openOnClick: false,
-                markdownLinks: true,
-                HTMLAttributes: { target: null, rel: null },
-            },
-        });
-        const attrExtension = createAttributeExtension();
-        const elementExtensions = createElementExtensions();
-
-        this.#editor = new Editor({
-            element: this.#editorContainer,
-            extensions: [starterKitExtension, attrExtension, ...elementExtensions],
-            content: this.value,
-            injectCSS: false,
-            onUpdate: ({ editor }) => this.#onEditorUpdate(editor),
-            onTransaction: () => this.requestUpdate(), // Her işlemde component'i güncelle
-            onFocus: () => (this.inputElement.value = formatEditorContent(this.value)),
-        });
-
-        this.#onEditorUpdate(this.#editor);
-        // this.inputElement.value = formatEditorContent(this.value);
-    }
-
-    #checkValidity(force = false) {
-        const valueMissing = this.required && isEmpty(this.value);
-        const isDeleted = this.interacted && valueMissing; // blur olmadan yazıp sildi mi
-
-        // invalid ise her inputta tekrar kontrol et
-        if (!force && !this.invalid && !isDeleted) return true;
-
-        return this.checkValidity();
-    }
-
-    /** @param {import('@tiptap/core').Editor} editor */
-    #getCleanEditorContent(editor) {
-        if (!editor) return '';
-        const content = editor.getHTML();
-
-        return trimTrailingP(content);
-    }
+    // #region EVENT HANDLERS
 
     /** @param {import('@tiptap/core').Editor} editor */
     #onEditorUpdate(editor) {
@@ -240,6 +204,14 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
 
     #onFocus() {
         if (!this.#showSourceCode) this.#editor.commands.focus();
+    }
+
+    /**
+     * Handles native invalid event from textarea.
+     * @param {Event} _event
+     */
+    #onInvalid(_event) {
+        this.#checkValidity(true);
     }
 
     #onBtnCodeClick(_event) {
@@ -314,6 +286,84 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
             this.#editor.commands.focus();
             unlockAllScrolls(this.#imageForm);
         }
+    }
+
+    // #endregion EVENT HANDLERS
+
+    #initEditor() {
+        this.#editorContainer = this.renderRoot.querySelector('[data-role="editor"]');
+        if (!this.#editorContainer || this.#editor) return;
+
+        const starterKitExtension = StarterKit.configure({
+            link: {
+                openOnClick: false,
+                markdownLinks: true,
+                HTMLAttributes: { target: null, rel: null },
+            },
+        });
+        const attrExtension = createAttributeExtension();
+        const elementExtensions = createElementExtensions();
+
+        this.#editor = new Editor({
+            element: this.#editorContainer,
+            extensions: [starterKitExtension, attrExtension, ...elementExtensions],
+            content: this.value,
+            injectCSS: false,
+            onUpdate: ({ editor }) => this.#onEditorUpdate(editor),
+            onTransaction: () => this.requestUpdate(), // Her işlemde component'i güncelle
+            onFocus: () => (this.inputElement.value = formatEditorContent(this.value)),
+        });
+
+        this.#onEditorUpdate(this.#editor);
+        // this.inputElement.value = formatEditorContent(this.value);
+    }
+
+    #checkValidity(force = false) {
+        const valueMissing = this.required && isEmpty(this.value);
+        const isDeleted = this.interacted && valueMissing; // blur olmadan yazıp sildi mi
+
+        // invalid ise her inputta tekrar kontrol et
+        if (!force && !this.invalid && !isDeleted) return true;
+
+        return this.checkValidity();
+    }
+
+    /** @param {import('@tiptap/core').Editor} editor */
+    #getCleanEditorContent(editor) {
+        if (!editor) return '';
+        const content = editor.getHTML();
+
+        return trimTrailingP(content);
+    }
+
+    /**
+     * Validates the content of a default slot node and updates the internal slot content accordingly.
+     * @param {HTMLElement|Text} node The node to validate.
+     * @returns {boolean}
+     */
+    #validateDefaultNode(node) {
+        if (!isEmpty(this.value)) {
+            console.warn('Value is already set via property. Ignoring slotted nodes.');
+            return false;
+        }
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            this.#slotContent += node.textContent.trim() ?? '';
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            this.#slotContent += /** @type {HTMLElement} */ (node).outerHTML ?? '';
+        }
+
+        return false;
+    }
+
+    /**
+     * Validates the content of a description slot node and updates the internal description accordingly.
+     * @param {HTMLElement|Text} node The node to validate.
+     * @returns {boolean}
+     */
+    #validateDescriptionNode(node) {
+        this.description = node;
+        return false;
     }
 
     #toggleBold = () => this.#editor?.chain().focus().toggleBold().run();
@@ -430,6 +480,18 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         return html`<span data-role="placeholder" aria-hidden="true">${this.placeholder}</span>`;
     }
 
+    /**
+     * Renders the description element for the textarea.
+     * It can be overridden by subclasses to provide custom description rendering logic.
+     * @protected
+     * @category rendering
+     * @return {import('lit').TemplateResult | typeof nothing}
+     */
+    renderDescription() {
+        if (!this.description) return nothing;
+        return html`<div data-role="description" id=${this.descriptionId}>${this.description}</div>`;
+    }
+
     renderButton(clickListener, label, title, ...pressedArgs) {
         const [name, attributes] = pressedArgs;
         const ariaPressed = this.#editor?.isActive(name, attributes) ? 'true' : 'false';
@@ -478,21 +540,28 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
                     ${spread(this.getScopedAttrs('input'))}
                     id=${this.fieldId}
                     name=${ifDefined(this.name)}
+                    ?disabled=${this.disabled}
+                    ?readonly=${this.readonly}
                     aria-labelledby=${ifDefined(this.labelId)}
                     aria-label=${ifDefined(this.hideLabel ? this.label : undefined)}
                     aria-errormessage=${ifDefined(this.errorId)}
+                    aria-describedby=${ifDefined(this.description ? this.descriptionId : undefined)}
                     aria-required=${this.required ? 'true' : 'false'}
                     aria-invalid=${ifDefined(this.ariaInvalid)}
+                    autocomplete="off"
                     ?required=${this.required}
                     spellcheck="false"
+                    inputmode="text"
+                    ?data-has-value=${this.value}
                     @input=${this.#onInput}
                     @blur=${this.#onBlur}
                     @focus=${this.#onFocus}
+                    @invalid=${this.#onInvalid}
                     data-role="source"
                     tabindex=${this.#showSourceCode ? nothing : '-1'}
                 ></textarea>
                 <div data-role="editor" @click=${this.#focusEditor}></div>
-                ${this.renderPlaceholder()} ${this.renderClearButton()}
+                ${this.renderPlaceholder()} ${this.renderClearButton()} ${this.renderDescription()}
             </div>
             <rt-link-form @submit=${this.#onLinkSubmit} @remove=${this.#onLinkRemove} @toggle=${this.#onLinkToggle} @cancel=${this.#onLinkCancel} popover="auto"></rt-link-form>
             <rt-image-form @submit=${this.#onImageSubmit} @toggle=${this.#onImageToggle} @cancel=${this.#onImageCancel} popover="auto"></rt-image-form>
