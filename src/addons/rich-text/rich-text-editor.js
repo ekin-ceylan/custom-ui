@@ -1,7 +1,7 @@
 import { html, nothing } from 'lit';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { SlotCollectorMixin, StandardControlBase, defineComponent, ifDefined, isEmpty, lockAllScrolls, mixins, spread, unlockAllScrolls } from 'custom-ui';
+import { defineComponent, ifDefined, isEmpty, lockAllScrolls, spread, TextAreaBase, unlockAllScrolls } from 'custom-ui';
 import { formatEditorContent, trimTrailingP } from './modules/rich-text-helper.js';
 import RichTextImage from './models/RichTextImage.js';
 import RichTextEditorLink from './models/RichTextEditorLink.js';
@@ -13,22 +13,11 @@ import createElementExtensions from './modules/element-extensions.js';
  * Rich Text Editor component for the Custom UI library.
  * Provides a rich text editing interface with support for images, links, and various text formatting options.
  */
-export default class RichTextEditor extends mixins(StandardControlBase, SlotCollectorMixin) {
+export default class RichTextEditor extends TextAreaBase {
     // #region STATICS, FIELDS, GETTERS
-
-    static get properties() {
-        return {
-            ...super.properties,
-            description: { type: Object, attribute: false },
-            maxlength: { type: Number },
-            minlength: { type: Number },
-        };
-    }
 
     /** @type {Editor | null} */
     #editor = null;
-    #slotContent = '';
-    #cachedInput = undefined;
     /** @type {HTMLElement | null} */
     #editorContainer = null;
     /** @type {RichTextLinkForm | null} */
@@ -36,42 +25,6 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
     /** @type {RichTextImageForm | null} */
     #imageForm = null;
     #showSourceCode = false; // Kaynak kodu göster/gizle durumu
-
-    get resetValue() {
-        return this.getAttribute('value') || this.#slotContent || '';
-    }
-
-    /**
-     * Returns the reference to the native input element within the component. Caches the reference after the first query for performance optimization.
-     * @returns {HTMLTextAreaElement | null}
-     */
-    get inputElement() {
-        if (this.#cachedInput === undefined) {
-            this.#cachedInput = this.renderRoot?.querySelector('textarea[data-role="source"]');
-        }
-
-        return this.#cachedInput;
-    }
-
-    get descriptionId() {
-        return `${this.componentName}-description-${this.uniqueId}`;
-    }
-
-    /**
-     * Returns the validation message for the minlength constraint.
-     * @returns {string}
-     */
-    get minLengthValidationMessage() {
-        return this.localeMessages.minlength(this.label, this.minlength);
-    }
-
-    /**
-     * Returns the validation message for the maxlength constraint.
-     * @returns {string}
-     */
-    get maxLengthValidationMessage() {
-        return this.localeMessages.maxlength(this.label, this.maxlength);
-    }
 
     /** Undo button title from locale messages */
     get undoButtonTitle() {
@@ -97,18 +50,6 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
     }
 
     // #endregion STATICS, FIELDS, GETTERS
-
-    constructor() {
-        super();
-
-        /** @type {string | HTMLElement | Text | undefined} The description text or HTML element for the textarea */
-        this.description = undefined;
-        /** @type {number | undefined} The maximum length of the input value */
-        this.maxlength = undefined;
-        /** @type {number | undefined} The minimum length of the input value */
-        this.minlength = undefined;
-    }
-
     connectedCallback() {
         super.connectedCallback();
 
@@ -168,28 +109,6 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
 
     // #region INTERNAL HOOKS
 
-    /**
-     * @param {HTMLElement|Text} node
-     * @param {string} slotName
-     * @returns {boolean}
-     * @override
-     */
-    validateNode(node, slotName) {
-        if (slotName === 'default') {
-            return this.#validateDefaultNode(node);
-        }
-        if (slotName === 'description') {
-            return this.#validateDescriptionNode(node);
-        }
-        return true;
-    }
-
-    afterSlotsBinded(hasProjectedContent) {
-        if (hasProjectedContent && isEmpty(this.value)) {
-            this.value = this.#slotContent;
-        }
-    }
-
     /** @override @protected */
     valueUpdated() {
         const currentHtml = this.#getCleanEditorContent(this.#editor);
@@ -204,15 +123,6 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         }
 
         return false;
-    }
-
-    /** @override */
-    validate(value) {
-        if (this.required && !value) return this.requiredValidationMessage;
-        if (value?.length > 0 && value?.length < this.minlength) return this.minLengthValidationMessage;
-        if (value?.length > this.maxlength) return this.maxLengthValidationMessage;
-
-        return '';
     }
 
     setupFirstInteraction() {
@@ -390,36 +300,6 @@ export default class RichTextEditor extends mixins(StandardControlBase, SlotColl
         const content = editor.getHTML();
 
         return trimTrailingP(content);
-    }
-
-    /**
-     * Validates the content of a default slot node and updates the internal slot content accordingly.
-     * @param {HTMLElement|Text} node The node to validate.
-     * @returns {boolean}
-     */
-    #validateDefaultNode(node) {
-        if (!isEmpty(this.value)) {
-            console.warn('Value is already set via property. Ignoring slotted nodes.');
-            return false;
-        }
-
-        if (node.nodeType === Node.TEXT_NODE) {
-            this.#slotContent += node.textContent.trim() ?? '';
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            this.#slotContent += /** @type {HTMLElement} */ (node).outerHTML ?? '';
-        }
-
-        return false;
-    }
-
-    /**
-     * Validates the content of a description slot node and updates the internal description accordingly.
-     * @param {HTMLElement|Text} node The node to validate.
-     * @returns {boolean}
-     */
-    #validateDescriptionNode(node) {
-        this.description = node;
-        return false;
     }
 
     #toggleBold = () => this.#editor?.chain().focus().toggleBold().run();

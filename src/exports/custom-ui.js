@@ -22,6 +22,7 @@ export { default as FormControlBase } from '../base/form-control-base.js';
 export { default as StandardControlBase } from '../base/standard-control-base.js';
 export { default as TextControlBase } from '../base/text-control-base.js';
 export { default as InputBase } from '../base/input-base.js';
+export { default as TextAreaBase } from '../base/text-area-base.js';
 
 // Mixins
 export { default as SlotCollectorMixin } from '../mixins/slot-collector-mixin.js';
