@@ -28,6 +28,7 @@ export { default as TextAreaBase } from '../base/text-area-base.js';
 export { default as SlotCollectorMixin } from '../mixins/slot-collector-mixin.js';
 export { default as UniqueIdGeneratorMixin } from '../mixins/unique-id-generator-mixin.js';
 export { default as PropValidatorMixin } from '../mixins/prop-validator-mixin.js';
+export { default as InputMaskMixin } from '../mixins/input-mask-mixin.js';
 
 // Text input
 export { default as TextBox } from '../components/text-input/text-box.js';
@@ -36,12 +37,11 @@ export { default as PlateBox } from '../components/text-input/plate-box.js';
 export { default as PhoneBox } from '../components/text-input/phone-box.js';
 export { default as EmailBox } from '../components/text-input/email-box.js';
 export { default as PasswordBox } from '../components/text-input/password-box.js';
-// export { default as ConfirmPasswordBox } from '../components/text-input/confirm-password-box.js';
-// export { default as NewPasswordBox } from '../components/text-input/new-password-box.js';
+export { default as ConfirmPasswordBox } from '../components/text-input/confirm-password-box.js';
+export { default as NewPasswordBox } from '../components/text-input/new-password-box.js';
 export { default as IntegerBox } from '../components/text-input/integer-box.js';
 
 export { default as TextArea } from '../components/text-area/text-area.js';
-// export { default as RichTextEditor } from '../components/text-area/rich-text-editor.js';
 
 // Select
 export { default as SelectBox } from '../components/select/select-box.js';

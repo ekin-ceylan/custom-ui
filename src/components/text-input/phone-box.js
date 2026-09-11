@@ -8,7 +8,6 @@ import TextControlBase from '../../base/text-control-base.js';
  *
  * The `PhoneBox` component extends `TextControlBase` and incorporates the `InputMaskMixin` to provide a user-friendly interface for entering phone numbers.
  * It automatically formats the input as the user types, ensuring that the phone number adheres to a specific pattern.
- * @extends {TextControlBase}
  */
 export default class PhoneBox extends mixins(TextControlBase, InputMaskMixin) {
     static get properties() {
@@ -65,10 +64,8 @@ export default class PhoneBox extends mixins(TextControlBase, InputMaskMixin) {
     }
 
     /**
-     * Validates the last character entered in the phone input.
-     * Ensures that only digits are allowed and the maximum length is not exceeded.
      * @param {KeyboardEvent & { target: HTMLInputElement }} keyDownEvent - The keyboard event triggered on key down.
-     * @override
+     * @override Validates the last character entered in the phone input. Ensures that only digits are allowed and the maximum length is not exceeded.
      */
     validateLastChar(keyDownEvent) {
         const val = keyDownEvent.target.value;

@@ -62,11 +62,10 @@ export default class PasswordBox extends TextControlBase {
 
     /**
      * Renders the toggle visibility button for the password input.
-     * @override
      * @protected
      * @returns {import('lit').TemplateResult}
      */
-    renderAdornment() {
+    renderToggleVisibilityButton() {
         return html`<button
             type="button"
             @click=${this.#toggleVisibility}
@@ -97,5 +96,15 @@ export default class PasswordBox extends TextControlBase {
                 <path fill-rule="evenodd" d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z" />
             </svg>
         </button>`;
+    }
+
+    /**
+     * @protected
+     * @override The rendered container content including the toggle visibility button.
+     * @returns {import('lit').TemplateResult}
+     */
+    renderContainerContent() {
+        const superContent = super.renderContainerContent();
+        return html`${superContent}${this.renderToggleVisibilityButton()}`;
     }
 }

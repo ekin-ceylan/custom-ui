@@ -6,6 +6,10 @@ phone-with-area {
         margin-right: 1rem;
         width: 110px;
 
+        img {
+            margin-right: 5px;
+        }
+
         [data-role='display'] span:first-of-type {
             display: none;
         }
@@ -119,12 +123,18 @@ phone-with-area-2 {
             }
         }
 
+        combo-box-2 {
+            img {
+                margin-right: 5px;
+            }
+        }
+
         phone-intl-2 {
             --tbx-padding: 8px 8px 8px 52px;
             --tbx-placeholder-letter-spacing: 1.5px;
 
             input {
-                border: none !important;
+                border-color: transparent !important;
                 outline: none !important;
             }
 

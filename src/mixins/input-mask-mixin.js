@@ -22,7 +22,7 @@ import { isEmpty } from '../modules/utilities.js';
  * **Usage:** Extend your text input component with this mixin to enable input mask functionality.
  * The input mask can be set via the `inputMask` property. If not set, it defaults to the value of the `placeholder` property.
  *
- * **Caution:** It overrides the `renderAdornment` method to render the input mask. Ensure that your component's `renderAdornment` method is available when using this mixin.
+ * **Caution:** It overrides the `renderContainerContent` method to render the input mask. Ensure that your component's `renderContainerContent` method is available when using this mixin.
  *
  * **Constraint:** Can only be applied to classes extending `TextControlBase`.
  *
@@ -48,21 +48,41 @@ export default function InputMaskMixin(Base) {
         willUpdate(changed) {
             super.willUpdate(changed);
 
-            if (changed.has('value')) {
+            if (changed.has('value') || changed.has('placeholder') || changed.has('inputMask')) {
                 const len = this.maskedValue.length;
                 this.#ghostMask1 = this.maskedValue;
                 this.#ghostMask2 = this.inputMask.slice(len);
             }
         }
 
-        /** @inheritDoc */
-        renderAdornment() {
+        /**
+         * The rendered input mask content.
+         * @returns {import('lit').TemplateResult | typeof nothing}
+         */
+        renderInputMaskContent() {
+            // prettier-ignore
+            return html`<pre>${this.#ghostMask1}</pre><pre>${this.#ghostMask2}</pre>`;
+        }
+
+        /**
+         * Renders the input mask (ghost text) as an underlay behind the actual input value.
+         * @returns {import('lit').TemplateResult | typeof nothing}
+         */
+        renderInputMask() {
             if (isEmpty(this.#ghostMask1) && isEmpty(this.#ghostMask2)) return nothing;
 
             // prettier-ignore
-            return html`<div aria-hidden="true" data-role="underlay">
-                <pre>${this.#ghostMask1}</pre><pre>${this.#ghostMask2}</pre>
-            </div> `;
+            return html`<div aria-hidden="true" data-role="underlay">${this.renderInputMaskContent()}</div>`;
+        }
+
+        /**
+         * @override Renders the container content including the input mask.
+         * @category rendering
+         * @returns {import('lit').TemplateResult | typeof nothing}
+         */
+        renderContainerContent() {
+            const superContent = super.renderContainerContent();
+            return html`${superContent}${this.renderInputMask()}`;
         }
     };
 }

@@ -476,18 +476,49 @@ export default class TextControlBase extends StandardControlBase {
     // #region RENDER HOOKS
 
     /**
-     * Renders the adornment element for the input field. By default, it returns `nothing`, but can be overridden by subclasses to provide custom adornment rendering logic.
-     *
-     * @example
-     * renderAdornment() {
-     *     return html`<span class="adornment">%</span>`;
-     * }
+     * Renders the input element for the text control. By default, it returns an empty template, but can be overridden by subclasses to provide custom input rendering logic.
      * @protected
      * @category rendering
      * @return {import('lit').TemplateResult | typeof nothing}
      */
-    renderAdornment() {
-        return nothing;
+    renderInput() {
+        return html`<input
+            ${spread(this.getScopedAttrs('input'))}
+            id=${this.fieldId}
+            name=${ifDefined(this.name)}
+            type=${this.type || 'text'}
+            ?disabled=${this.disabled}
+            ?readonly=${this.readonly}
+            aria-labelledby=${ifDefined(this.labelId)}
+            aria-label=${ifDefined(this.hideLabel ? this.label : undefined)}
+            aria-errormessage=${ifDefined(this.errorId)}
+            aria-required=${this.required ? 'true' : 'false'}
+            aria-invalid=${ifDefined(this.ariaInvalid)}
+            .placeholder=${this.placeholder}
+            autocomplete=${ifDefined(this.autocomplete)}
+            ?required=${this.required}
+            spellcheck=${ifDefined(this.spellcheck)}
+            inputmode=${ifDefined(this.inputmode)}
+            pattern=${this.pattern || nothing}
+            maxlength=${ifDefined(this.maxlength)}
+            minlength=${ifDefined(this.minlength)}
+            ?data-has-value=${this.value}
+            @input=${this.#onInput}
+            @change=${this.#onChange}
+            @keydown=${this.#onKeydown}
+            @blur=${this.#onBlur}
+            @invalid=${this.#onInvalid}
+        />`;
+    }
+
+    /**
+     * Renders the content inside the container element. By default, it returns the input, adornment, and clear button elements, but can be overridden by subclasses to provide custom container content rendering logic.
+     * @protected
+     * @category rendering
+     * @return {import('lit').TemplateResult | typeof nothing}
+     */
+    renderContainerContent() {
+        return html`${this.renderInput()} ${this.renderClearButton()}`;
     }
 
     /**
@@ -498,36 +529,7 @@ export default class TextControlBase extends StandardControlBase {
      */
     render() {
         return html`${this.renderLabel()}
-            <div data-role="container">
-                <input
-                    ${spread(this.getScopedAttrs('input'))}
-                    id=${this.fieldId}
-                    name=${ifDefined(this.name)}
-                    type=${this.type || 'text'}
-                    ?disabled=${this.disabled}
-                    ?readonly=${this.readonly}
-                    aria-labelledby=${ifDefined(this.labelId)}
-                    aria-label=${ifDefined(this.hideLabel ? this.label : undefined)}
-                    aria-errormessage=${ifDefined(this.errorId)}
-                    aria-required=${this.required ? 'true' : 'false'}
-                    aria-invalid=${ifDefined(this.ariaInvalid)}
-                    .placeholder=${this.placeholder}
-                    autocomplete=${ifDefined(this.autocomplete)}
-                    ?required=${this.required}
-                    spellcheck=${ifDefined(this.spellcheck)}
-                    inputmode=${ifDefined(this.inputmode)}
-                    pattern=${this.pattern || nothing}
-                    maxlength=${ifDefined(this.maxlength)}
-                    minlength=${ifDefined(this.minlength)}
-                    ?data-has-value=${this.value}
-                    @input=${this.#onInput}
-                    @change=${this.#onChange}
-                    @keydown=${this.#onKeydown}
-                    @blur=${this.#onBlur}
-                    @invalid=${this.#onInvalid}
-                />
-                ${this.renderAdornment()} ${this.renderClearButton()}
-            </div>
+            <div data-role="container">${this.renderContainerContent()}</div>
             ${this.renderErrorMessage()}`;
     }
     // #endregion RENDER HOOKS

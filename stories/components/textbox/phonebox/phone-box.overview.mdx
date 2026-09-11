@@ -14,7 +14,7 @@ import * as PhoneboxStories from './phone-box.stories.js';
 <Canvas of={PhoneboxStories.IntlStory_1} />
 
 ```js
-class PhoneIntl extends TextControlBase {
+class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -23,8 +23,6 @@ class PhoneIntl extends TextControlBase {
         };
     }
 
-    #ghostMask1 = '';
-    #ghostMask2 = '';
     /** @type {Country} */
     #selectedCountry = {};
 
@@ -39,16 +37,6 @@ class PhoneIntl extends TextControlBase {
         this.autocomplete = 'tel-international';
 
         this.#setCountry(countries[this.countryCode]);
-    }
-
-    willUpdate(changed) {
-        super.willUpdate(changed);
-
-        if (changed.has('value') || changed.has('placeholder')) {
-            const len = this.value.length;
-            this.#ghostMask1 = this.maskedValue;
-            this.#ghostMask2 = this.#selectedCountry.maskPlaceholder.slice(len);
-        }
     }
 
     updated(changedProperties) {
@@ -89,7 +77,7 @@ class PhoneIntl extends TextControlBase {
 
         const newValue = (val.slice(0, caret) + key + val.slice(caretEnd)).replaceAll(/\D/g, '');
 
-        if (newValue.length > maxlength) return false; // Maksimum uzunluk maxlength olmalı
+        if (newValue.length > maxlength) return false;
 
         return /\d/.test(keyDownEvent.key);
     }
@@ -100,16 +88,6 @@ class PhoneIntl extends TextControlBase {
         this.placeholder = country?.placeholder;
         this.requestUpdate('pattern');
     }
-
-    /** @override @return {import('lit').TemplateResult | typeof nothing} */
-    renderAdornment() {
-        if (isEmpty(this.#ghostMask1) && isEmpty(this.#ghostMask2)) return nothing;
-
-        // prettier-ignore
-        return html`<div aria-hidden="true" data-role="underlay">
-                <pre>${this.#ghostMask1}</pre><pre>${this.#ghostMask2}</pre>
-            </div> `;
-    }
 }
 ```
 
@@ -118,6 +96,63 @@ class PhoneIntl extends TextControlBase {
 <Canvas of={PhoneboxStories.IntlStory_2} />
 
 ```js
+class PhoneNational2 extends mixins(LightComponentBase, UniqueIdGeneratorMixin) {
+    static get properties() {
+        return {
+            ...super.properties,
+            countryCode: { type: String, attribute: 'phone-code' },
+            label: { type: String },
+            validationMessage: { type: String, state: true },
+            disabled: { type: Boolean, reflect: true },
+            required: { type: Boolean, reflect: true },
+        };
+    }
+
+    get fieldId() {
+        return `${this.componentName}-${this.uniqueId}`;
+    }
+
+    constructor() {
+        super();
+
+        this.countryCode = 'tr';
+    }
+
+    #handleCountryChange(event) {
+        const next = event.target.value;
+        if (next === this.countryCode) return;
+        this.countryCode = next;
+    }
+
+    #onValidate(event) {
+        this.validationMessage = event.detail?.validationMessage;
+    }
+
+    renderErrorMessage() {
+        if (!this.validationMessage) return nothing;
+        return html`<span id=${ifDefined(this.errorId)} data-role="error-message" aria-live="assertive">${this.validationMessage}</span>`;
+    }
+
+    render() {
+        return html`
+            <label for=${this.fieldId}>${this.label}</label>
+            <div role="container">
+                <combo-box-2 label="Alan Kodu" hide-label .options=${options} .value=${this.countryCode} @change=${this.#handleCountryChange}></combo-box-2>
+                <phone-intl-2
+                    label=${this.label}
+                    field-id=${this.fieldId}
+                    ?disabled=${this.disabled}
+                    ?required=${this.required}
+                    country-code=${this.countryCode}
+                    @validate=${this.#onValidate}
+                    class="textbox"
+                ></phone-intl-2>
+            </div>
+            ${this.renderErrorMessage()}
+        `;
+    }
+}
+
 class PhoneIntl2 extends PhoneIntl {
     renderLabel() {
         return nothing;
@@ -127,16 +162,24 @@ class PhoneIntl2 extends PhoneIntl {
         return nothing;
     }
 
-    /** @override @return {import('lit').TemplateResult | typeof nothing} */
-    renderAdornment() {
-        if (isEmpty(this.#ghostMask1) && isEmpty(this.#ghostMask2)) return nothing;
-
+    renderInputMaskContent() {
         // prettier-ignore
-        return html`<div aria-hidden="true" data-role="underlay">
-                <pre>+${this.#selectedCountry?.code}</pre><pre>${this.#ghostMask1}</pre><pre>${this.#ghostMask2}</pre>
-            </div> `;
+        return html`<pre>+${this.selectedCountry?.code}</pre>${super.renderInputMaskContent()}`;
     }
 }
+
+class CustomCombobox extends ComboBox {
+    renderSearchInput() {
+        return nothing;
+    }
+
+    renderListContent() {
+        return html`${super.renderSearchInput()} ${super.renderListContent()}`;
+    }
+}
+
+defineComponent('combo-box-2', CustomCombobox);
+defineComponent('phone-intl-2', PhoneIntl2);
 ```
 
 ## Component API

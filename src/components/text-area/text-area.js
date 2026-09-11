@@ -142,7 +142,7 @@ export default class TextArea extends TextAreaBase {
                     @blur=${this.#onBlur}
                     @invalid=${this.#onInvalid}
                 ></textarea>
-                ${this.renderAdornment()} ${this.renderCounter()} ${this.renderClearButton()} ${this.renderDescription()}
+                ${this.renderCounter()} ${this.renderClearButton()} ${this.renderDescription()}
             </div>
             ${this.renderErrorMessage()}`;
     }

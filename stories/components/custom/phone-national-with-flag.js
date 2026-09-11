@@ -1,6 +1,6 @@
 import { isEmpty } from '../../../src/modules/utilities.js';
-import { html, nothing } from 'lit';
-import { defineComponent, LightComponentBase, TextControlBase } from '../../../src/exports/custom-ui.js';
+import { html } from 'lit';
+import { defineComponent, LightComponentBase, TextControlBase, InputMaskMixin, mixins } from '../../../src/exports/custom-ui.js';
 
 export default class PhoneNational extends LightComponentBase {
     static get properties() {
@@ -31,8 +31,7 @@ export default class PhoneNational extends LightComponentBase {
     }
 }
 
-/** @extends {TextControlBase} */
-class PhoneIntl extends TextControlBase {
+export class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -41,10 +40,13 @@ class PhoneIntl extends TextControlBase {
         };
     }
 
-    #ghostMask1 = '';
-    #ghostMask2 = '';
     /** @type {Country} */
     #selectedCountry = {};
+
+    /** @type {Country} */
+    get selectedCountry() {
+        return this.#selectedCountry;
+    }
 
     constructor() {
         super();
@@ -57,16 +59,6 @@ class PhoneIntl extends TextControlBase {
         this.autocomplete = 'tel-international';
 
         this.#setCountry(countries[this.countryCode]);
-    }
-
-    willUpdate(changed) {
-        super.willUpdate(changed);
-
-        if (changed.has('value') || changed.has('placeholder')) {
-            const len = this.value.length;
-            this.#ghostMask1 = this.maskedValue;
-            this.#ghostMask2 = this.#selectedCountry?.maskPlaceholder.slice(len);
-        }
     }
 
     updated(changedProperties) {
@@ -117,16 +109,6 @@ class PhoneIntl extends TextControlBase {
         this.pattern = country?.pattern;
         this.placeholder = country?.placeholder;
         this.requestUpdate('pattern');
-    }
-
-    /** @override @return {import('lit').TemplateResult | typeof nothing} */
-    renderAdornment() {
-        if (isEmpty(this.#ghostMask1) && isEmpty(this.#ghostMask2)) return nothing;
-
-        // prettier-ignore
-        return html`<div aria-hidden="true" data-role="underlay">
-                <pre>${this.#ghostMask1}</pre><pre>${this.#ghostMask2}</pre>
-            </div> `;
     }
 }
 

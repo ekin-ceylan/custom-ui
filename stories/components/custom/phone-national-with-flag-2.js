@@ -1,10 +1,11 @@
-import { defineComponent, ifDefined, isEmpty } from '../../../src/modules/utilities.js';
+import { defineComponent, ifDefined } from '../../../src/modules/utilities.js';
 import { CustomCombobox } from './custom-combobox.js';
 import { html, nothing } from 'lit';
 import UniqueIdGeneratorMixin from '../../../src/mixins/unique-id-generator-mixin.js';
-import { lightMixins, TextControlBase } from '../../../src/exports/custom-ui.js';
+import { mixins, LightComponentBase } from '../../../src/exports/custom-ui.js';
+import { PhoneIntl } from './phone-national-with-flag.js';
 
-export default class PhoneNational2 extends lightMixins(UniqueIdGeneratorMixin) {
+export default class PhoneNational2 extends mixins(LightComponentBase, UniqueIdGeneratorMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -75,96 +76,7 @@ export default class PhoneNational2 extends lightMixins(UniqueIdGeneratorMixin) 
     }
 }
 
-// TODO: diğerinden kalıtım al
-
-/** @extends {TextControlBase} */
-class PhoneIntl2 extends TextControlBase {
-    static get properties() {
-        return {
-            ...super.properties,
-            autounmask: { type: Boolean },
-            countryCode: { type: String, attribute: 'country-code' },
-        };
-    }
-
-    #ghostMask1 = '';
-    #ghostMask2 = '';
-    /** @type {Country} */
-    #selectedCountry = {};
-
-    constructor() {
-        super();
-
-        /** @type {string} */
-        this.countryCode = 'tr';
-
-        this.type = 'tel';
-        this.inputmode = 'tel';
-        this.autocomplete = 'tel-international';
-
-        this.#setCountry(countries[this.countryCode]);
-    }
-
-    willUpdate(changed) {
-        super.willUpdate(changed);
-
-        if (changed.has('value') || changed.has('placeholder')) {
-            const len = this.value.length;
-            this.#ghostMask1 = this.maskedValue;
-            this.#ghostMask2 = this.#selectedCountry?.maskPlaceholder?.slice(len);
-        }
-    }
-
-    updated(changedProperties) {
-        super.updated(changedProperties);
-
-        if (changedProperties.has('countryCode')) {
-            this.#setCountry(countries[this.countryCode]);
-            this.value = this.mask(this.value);
-        }
-    }
-
-    mask(value) {
-        if (isEmpty(value)) return value;
-
-        const c = this.#selectedCountry;
-        const len = c?.code.toString().length + c?.maxlength;
-        value = value.replaceAll(/\D/g, ''); // Sayı olmayan karakterleri kaldır
-
-        if (value.length >= len) {
-            const rx = new RegExp(`^0{0,2}${c?.code}`);
-            value = value.replace(rx, ''); // Ülke kodunu kaldır
-        }
-
-        value = value.slice(0, c?.maxlength);
-        return value.replace(c?.maskRegex, (...args) => args.slice(1, -2).filter(Boolean).join(' ').trimEnd());
-    }
-
-    unmask(maskedValue) {
-        return isEmpty(maskedValue) ? maskedValue : this.#selectedCountry?.code + maskedValue.replaceAll(/\D/g, ''); // Sayı olmayan karakterleri kaldır
-    }
-
-    validateLastChar(keyDownEvent) {
-        const val = keyDownEvent.target.value;
-        const key = keyDownEvent.key;
-        const caret = keyDownEvent.target.selectionStart;
-        const caretEnd = keyDownEvent.target.selectionEnd;
-        const maxlength = this.#selectedCountry?.maxlength;
-
-        const newValue = (val.slice(0, caret) + key + val.slice(caretEnd)).replaceAll(/\D/g, '');
-
-        if (newValue.length > maxlength) return false; // Maksimum uzunluk maxlength olmalı
-
-        return /\d/.test(keyDownEvent.key);
-    }
-
-    #setCountry(country) {
-        this.#selectedCountry = country;
-        this.pattern = country?.pattern;
-        this.placeholder = country?.placeholder;
-        this.requestUpdate('pattern');
-    }
-
+class PhoneIntl2 extends PhoneIntl {
     renderLabel() {
         return nothing;
     }
@@ -173,14 +85,13 @@ class PhoneIntl2 extends TextControlBase {
         return nothing;
     }
 
-    /** @override @return {import('lit').TemplateResult | typeof nothing} */
-    renderAdornment() {
-        if (isEmpty(this.#ghostMask1) && isEmpty(this.#ghostMask2)) return nothing;
-
+    /**
+     * @override Renders the input mask content including the country code.
+     * @return {import('lit').TemplateResult | typeof nothing}
+     */
+    renderInputMaskContent() {
         // prettier-ignore
-        return html`<div aria-hidden="true" data-role="underlay">
-                <pre>+${this.#selectedCountry?.code}</pre><pre>${this.#ghostMask1}</pre><pre>${this.#ghostMask2}</pre>
-            </div> `;
+        return html`<pre>+${this.selectedCountry?.code}</pre>${super.renderInputMaskContent()}`;
     }
 }
 
@@ -302,3 +213,5 @@ const options = [
     new CountryPhone({ phoneCode: '1', value: 'us', label: 'Amerika Birleşik Devletleri' }),
     new CountryPhone({ phoneCode: '84', value: 'vn', label: 'Vietnam' }),
 ];
+
+// https://github.com/google/libphonenumber/blob/07817b005926c648c5d7a29e2bf3ca844e0f7d68/resources/PhoneNumberMetadata.xml

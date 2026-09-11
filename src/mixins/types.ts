@@ -67,4 +67,22 @@ export interface InputMask {
      * @protected
      */
     inputMask: string;
+
+    /**
+     * The rendered input mask content.
+     * @protected
+     */
+    renderInputMaskContent(): import('lit').TemplateResult | typeof import('lit').nothing;
+
+    /**
+     * Renders the input mask (ghost text) as an underlay behind the actual input value.
+     * @protected
+     */
+    renderInputMask(): import('lit').TemplateResult | typeof import('lit').nothing;
+
+    /**
+     * @override Renders the container content including the input mask.
+     * @protected
+     */
+    renderContainerContent(): import('lit').TemplateResult | typeof import('lit').nothing;
 }

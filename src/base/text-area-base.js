@@ -174,22 +174,6 @@ export default class TextAreaBase extends mixins(StandardControlBase, SlotCollec
     // #region RENDER HOOKS
 
     /**
-     * Renders the adornment element for the textarea.
-     * By default, it returns `nothing`, but can be overridden by subclasses to provide custom adornment rendering logic.
-     *
-     * @example
-     * renderAdornment() {
-     *     return html`<span class="adornment">%</span>`;
-     * }
-     * @protected
-     * @category rendering
-     * @return {import('lit').TemplateResult | typeof nothing}
-     */
-    renderAdornment() {
-        return nothing;
-    }
-
-    /**
      * Renders the counter element for the textarea.
      * It can be overridden by subclasses to provide custom counter rendering logic.
      * @protected
