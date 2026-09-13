@@ -64,7 +64,7 @@ export default class ComboBox extends SelectBase {
         this.#options = val;
         this.#optionList = this.options.map(o => {
             const opt = this.#toListElement(o);
-            if (opt.selected) this.#onSelect(opt);
+            if (opt.selected) this.#onSelect(opt, false);
 
             return opt;
         });
@@ -98,7 +98,9 @@ export default class ComboBox extends SelectBase {
     }
 
     // #region LIFECYCLE METHODS
-    firstUpdated() {
+    firstUpdated(changed) {
+super.firstUpdated(changed);
+
         this.inputElement = this.renderRoot.querySelector('input[data-role="value"]');
         this.searchElement = /** @type {HTMLInputElement} */ (this.renderRoot.querySelector('input[data-role="search"]'));
         this.displayElement = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[data-role="display"]'));
@@ -115,9 +117,9 @@ export default class ComboBox extends SelectBase {
     }
 
     updated(changed) {
-        if (changed.has('value') && this.inputElement?.value !== this.value) {
-            const matchedOption = this.#optionList.find(o => o.value === this.value) || null;
-            this.#onSelect(matchedOption);
+        if (changed.has('value') && this.inputElement?.value != this.value) {
+            const matchedOption = this.#optionList.find(o => o.value == this.value) || null;
+            this.#onSelect(matchedOption, false);
             this.#checkValidity();
             this.dispatchCustomEvent('update');
         }
@@ -169,7 +171,7 @@ export default class ComboBox extends SelectBase {
 
         if (isNode && this.contains(rt)) return;
 
-        this.#closeList();
+        this.#closeListAndValidate();
     }
 
     onFocusSearch(_e) {
@@ -193,7 +195,7 @@ export default class ComboBox extends SelectBase {
         const key = e.key;
 
         if (key === 'Escape') {
-            this.#closeList();
+            this.#closeListAndValidate();
             this.comboboxDiv.focus();
         } else if (!this.isOpen) {
             this.#closedKeyboardBehavior(e, key);
@@ -225,7 +227,7 @@ export default class ComboBox extends SelectBase {
 
     onOptionClick(option) {
         this.#onSelect(option);
-        this.#closeList();
+        this.#closeListAndValidate();
     }
 
     onListboxClick(e) {
@@ -251,7 +253,7 @@ export default class ComboBox extends SelectBase {
      * Handles option selection.
      * @param {ComboOption} selectedOption
      */
-    #onSelect(selectedOption) {
+    #onSelect(selectedOption, emitEvents = true) {
         if (this.#selectedOption === selectedOption) return;
         if (this.#selectedOption) this.#selectedOption.selected = false;
         this.#selectedOption = selectedOption;
@@ -259,9 +261,12 @@ export default class ComboBox extends SelectBase {
         if (this.#selectedOption) this.#selectedOption.selected = true;
         this.selectedOption = { value: selectedOption?.value, label: selectedOption?.displayText };
         this.#setInputAndDisplay(selectedOption);
-        this.value = selectedOption?.value || null;
+        this.value = selectedOption?.value ?? '';
+
+        if (emitEvents) {
         this.dispatchCustomEvent('input');
         this.dispatchCustomEvent('change');
+}
     }
 
     /**
@@ -273,6 +278,7 @@ export default class ComboBox extends SelectBase {
 
         this.inputElement.value = selectedOption?.value || '';
         this.displayElement.innerHTML = selectedOption?.displayContent || this.placeholder;
+        this.comboboxDiv.title = selectedOption?.displayText || '';
     }
 
     /**
@@ -309,7 +315,7 @@ export default class ComboBox extends SelectBase {
                 this.#selectActiveOption();
             }
 
-            this.#closeList();
+            this.#closeListAndValidate();
             this.comboboxDiv.focus();
         }
     }
@@ -394,45 +400,37 @@ export default class ComboBox extends SelectBase {
     }
 
     #closeList() {
-        if (this.nativeBehavior) this.#selectActiveOption();
-        this.isOpen = false;
+                this.isOpen = false;
         this.listboxDiv?.hidePopover();
         this.#unlockBody();
-        this.searchElement.blur();
+                this.activeIndex = -1;
+                this.dispatchCustomEvent('close');
+    }
+
+    #closeListAndValidate() {
+        if (this.nativeBehavior) this.#selectActiveOption();
+        this.#closeList();
         this.filter = '';
-        this.activeIndex = -1;
         this.#checkValidity();
-        this.dispatchCustomEvent('close');
     }
 
     #lockBody() {
-        lockAllScrolls(this.listboxDiv);
-        globalThis.addEventListener('scroll', this.#onGlobalScroll, { capture: true, passive: true });
+        lockAllScrolls(this.listboxDiv, this.#onPositionInvalidated);
         globalThis.addEventListener('pointerdown', this.#onPointerDownOutside, { capture: true });
-        globalThis.addEventListener('resize', this.#onResize, { passive: true });
-    }
+            }
 
     #unlockBody() {
         unlockAllScrolls(this.listboxDiv);
-        globalThis.removeEventListener('scroll', this.#onGlobalScroll, { capture: true });
-        globalThis.removeEventListener('pointerdown', this.#onPointerDownOutside, { capture: true });
-        globalThis.removeEventListener('resize', this.#onResize);
-    }
+                globalThis.removeEventListener('pointerdown', this.#onPointerDownOutside, { capture: true });
+            }
 
     #onPointerDownOutside = e => {
         const path = e.composedPath();
         if (!path.includes(this.comboboxDiv)) {
-            this.#closeList();
+            this.#closeListAndValidate();
         }
     };
-    #onResize = () => {
-        this.#closeList();
-    };
-    #onGlobalScroll = e => {
-        if (e.target !== this.listboxDiv) {
-            this.#closeList();
-        }
-    };
+    #onPositionInvalidated = () => this.#closeListAndValidate();
 
     #calcListSizeAndDirection() {
         requestAnimationFrame(() => {
