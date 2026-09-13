@@ -207,6 +207,243 @@ describe('ComboBox - Options & selection', () => {
     });
 });
 
+describe('ComboBox - Popover behavior', () => {
+    it('opens and closes the native popover together with isOpen', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+
+        expect(fixture.listbox.matches(':popover-open')).toBe(false);
+
+        await openList(fixture);
+        expect(fixture.host.isOpen).toBe(true);
+        expect(fixture.listbox.matches(':popover-open')).toBe(true);
+
+        await closeListWithEscape(fixture);
+        expect(fixture.host.isOpen).toBe(false);
+        expect(fixture.listbox.matches(':popover-open')).toBe(false);
+        expect(fixture.host.activeIndex).toBe(-1);
+        expect(document.activeElement).toBe(fixture.comboboxDiv);
+    });
+
+    it('closes on an outside pointer interaction but stays open for an inside interaction', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+
+        const outside = document.createElement('button');
+        document.body.append(outside);
+
+        await openList(fixture);
+        await fixture.user.click(fixture.searchInput);
+        expect(fixture.host.isOpen).toBe(true);
+
+        await fixture.user.click(outside);
+        await fixture.host.updateComplete;
+        expect(fixture.host.isOpen).toBe(false);
+        expect(fixture.listbox.matches(':popover-open')).toBe(false);
+    });
+
+    it.each(['scroll', 'resize'])('closes when the viewport is invalidated by %s', async eventType => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+
+        await openList(fixture);
+        globalThis.dispatchEvent(new Event(eventType));
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.isOpen).toBe(false);
+        expect(fixture.listbox.matches(':popover-open')).toBe(false);
+    });
+
+    it('does not close when the listbox itself is scrolled', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+
+        await openList(fixture);
+        fixture.listbox.dispatchEvent(new Event('scroll', { bubbles: true }));
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.isOpen).toBe(true);
+        expect(fixture.listbox.matches(':popover-open')).toBe(true);
+    });
+
+    it('cleans up global close handling when disconnected while open', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+        const closeSpy = vi.fn();
+        fixture.host.addEventListener('close', closeSpy);
+
+        await openList(fixture);
+        fixture.host.remove();
+        const closeCountAfterDisconnect = closeSpy.mock.calls.length;
+        globalThis.dispatchEvent(new Event('scroll'));
+        globalThis.dispatchEvent(new Event('resize'));
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        expect(closeSpy).toHaveBeenCalledTimes(closeCountAfterDisconnect);
+    });
+
+    it('dispatches open and close once for one open-close cycle', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+        const openSpy = vi.fn();
+        const closeSpy = vi.fn();
+        fixture.host.addEventListener('open', openSpy);
+        fixture.host.addEventListener('close', closeSpy);
+
+        await openList(fixture);
+        await closeListWithEscape(fixture);
+
+        expect(openSpy).toHaveBeenCalledTimes(1);
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+        ['below', { x: 40, top: 100, bottom: 140, width: 180 }, 700, 700, false],
+        ['above', { x: 40, top: 700, bottom: 740, width: 180 }, 800, 800, true],
+    ])('positions the list %s the combobox and clamps its height', async (_direction, rect, viewportHeight, scrollHeight, directionUp) => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" placeholder="Pick">
+                <option value="a">Ankara</option>
+            </combo-box>
+        `);
+        vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(viewportHeight);
+        vi.spyOn(fixture.comboboxDiv, 'getBoundingClientRect').mockReturnValue({ ...rect, height: rect.bottom - rect.top, right: rect.x + rect.width, y: rect.top, toJSON() {} });
+        vi.spyOn(fixture.listbox, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 0, height: 0, width: 0, x: 0, y: 0, right: 0, left: 0, toJSON() {} });
+        fixture.listbox.style.maxHeight = '1000px';
+        Object.defineProperty(fixture.listbox, 'scrollHeight', { configurable: true, value: scrollHeight });
+
+        await openList(fixture);
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        expect(fixture.host.directionUp).toBe(directionUp);
+        expect(fixture.listbox.style.minWidth).toBe(`${rect.width}px`);
+        expect(fixture.listbox.style.left).toBe(`${rect.x}px`);
+        expect(fixture.listbox.style.maxHeight).toBe(`${directionUp ? rect.top : viewportHeight - rect.bottom}px`);
+        expect(fixture.listbox.style.top).toBe(directionUp ? '' : `${rect.bottom}px`);
+        expect(fixture.listbox.style.bottom).toBe(directionUp ? `${viewportHeight - rect.top}px` : '');
+    });
+});
+
+describe('ComboBox - Extended interaction behavior', () => {
+    it.each(['Escape', 'Tab'])('commits the active option when native behavior closes with %s', async key => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" native-behavior>
+                <option value="a">Ankara</option>
+                <option value="i">Istanbul</option>
+            </combo-box>
+        `);
+
+        await openList(fixture);
+        await fixture.user.keyboard('{ArrowDown}');
+        await fixture.host.updateComplete;
+        await fixture.user.keyboard(`{${key}}`);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.isOpen).toBe(false);
+        expect(fixture.host.value).toBe('a');
+    });
+
+    it('stays open while focus moves between internal controls and closes outside the component', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" clearable>
+                <option value="a" selected>Ankara</option>
+            </combo-box>
+        `);
+        const outside = document.createElement('button');
+        document.body.append(outside);
+
+        await openList(fixture);
+        fixture.clearButton.focus();
+        await fixture.host.updateComplete;
+        expect(fixture.host.isOpen).toBe(true);
+
+        outside.focus();
+        await fixture.host.updateComplete;
+        expect(fixture.host.isOpen).toBe(false);
+    });
+
+    it('isolates open and close behavior between multiple ComboBox instances', async () => {
+        const first = await initComboBox('<combo-box field-id="first" label="First"><option value="a">A</option></combo-box>');
+        const secondHost = document.createElement('combo-box');
+        secondHost.setAttribute('field-id', 'second');
+        secondHost.setAttribute('label', 'Second');
+        const secondOption = document.createElement('option');
+        secondOption.value = 'b';
+        secondOption.textContent = 'B';
+        secondHost.append(secondOption);
+        document.body.append(secondHost);
+        await secondHost.updateComplete;
+        const second = {
+            host: secondHost,
+            comboboxDiv: secondHost.querySelector('div[role="combobox"]'),
+            user: first.user,
+        };
+
+        await openList(first);
+        second.comboboxDiv.focus();
+        await second.user.keyboard('{Enter}');
+        await second.host.updateComplete;
+
+        expect(first.host.isOpen).toBe(false);
+        expect(second.host.isOpen).toBe(true);
+
+        globalThis.dispatchEvent(new Event('scroll'));
+        await Promise.all([first.host.updateComplete, second.host.updateComplete]);
+        expect(first.host.isOpen).toBe(false);
+        expect(second.host.isOpen).toBe(false);
+    });
+
+    it('keeps event counts balanced across repeated open and close cycles', async () => {
+        const fixture = await initComboBox('<combo-box field-id="city" label="City"><option value="a">Ankara</option></combo-box>');
+        const openSpy = vi.fn();
+        const closeSpy = vi.fn();
+        fixture.host.addEventListener('open', openSpy);
+        fixture.host.addEventListener('close', closeSpy);
+
+        for (let cycle = 0; cycle < 2; cycle++) {
+            await openList(fixture);
+            await closeListWithEscape(fixture);
+        }
+
+        expect(openSpy).toHaveBeenCalledTimes(2);
+        expect(closeSpy).toHaveBeenCalledTimes(2);
+        expect(fixture.host.isOpen).toBe(false);
+    });
+
+    it('updates the open list when options change', async () => {
+        const fixture = await initComboBox('<combo-box field-id="city" label="City"><option value="a">Ankara</option></combo-box>');
+
+        await openList(fixture);
+        fixture.host.options = [
+            { value: 'a', label: 'Ankara' },
+            { value: 'i', label: 'Istanbul' },
+        ];
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.isOpen).toBe(true);
+        expect(fixture.listbox.matches(':popover-open')).toBe(true);
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['a', 'i']);
+    });
+});
+
 describe('ComboBox - Filtering', () => {
     it('filters options as the user types in search', async () => {
         const fixture = await initComboBox(`
