@@ -442,6 +442,18 @@ describe('ComboBox - Extended interaction behavior', () => {
         expect(fixture.listbox.matches(':popover-open')).toBe(true);
         expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['a', 'i']);
     });
+
+    it('synchronizes component state when the native popover is dismissed', async () => {
+        const fixture = await initComboBox('<combo-box field-id="city" label="City"><option value="a">Ankara</option></combo-box>');
+        const listbox = fixture.host.querySelector('div[role="listbox"]');
+
+        await openList(fixture);
+        listbox.hidePopover();
+        await fixture.host.updateComplete;
+
+        expect(listbox.matches(':popover-open')).toBe(false);
+        expect(fixture.host.isOpen).toBe(false);
+    });
 });
 
 describe('ComboBox - Filtering', () => {
@@ -487,6 +499,49 @@ describe('ComboBox - Required validation', () => {
         expect(fixture.input.getAttribute('aria-errormessage')).toBe(fixture.host.errorId);
     });
 
+    it('validates when focus leaves the component', async () => {
+        const fixture = await initComboBox(`
+            <combo-box label="Team" required placeholder="Pick">
+                <option value="a">A</option>
+            </combo-box>
+        `);
+        const outside = document.createElement('button');
+        document.body.append(outside);
+
+        await openList(fixture);
+        outside.focus();
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.getAttribute('aria-invalid')).toBe('true');
+        expect(fixture.error).not.toBeNull();
+        expect(fixture.input.getAttribute('aria-errormessage')).toBe(fixture.host.errorId);
+    });
+
+    it('applies validation when the native input dispatches invalid', async () => {
+        const fixture = await initComboBox('<combo-box label="Team" required placeholder="Pick"></combo-box>');
+        const invalidEvent = new Event('invalid', { bubbles: false, cancelable: true });
+
+        fixture.input.dispatchEvent(invalidEvent);
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.validity.valueMissing).toBe(true);
+        expect(fixture.input.validationMessage).toContain('gereklidir');
+        expect(fixture.input.getAttribute('aria-invalid')).toBe('true');
+        expect(fixture.error).not.toBeNull();
+        expect(fixture.input.getAttribute('aria-errormessage')).toBe(fixture.host.errorId);
+    });
+
+    it('keeps focus on the combobox when invalid validation is triggered', async () => {
+        const fixture = await initComboBox('<combo-box label="Team" required placeholder="Pick"></combo-box>');
+
+        fixture.comboboxDiv.focus();
+        fixture.input.dispatchEvent(new Event('invalid', { bubbles: false, cancelable: true }));
+        await fixture.host.updateComplete;
+
+        expect(document.activeElement).toBe(fixture.comboboxDiv);
+        expect(fixture.input.getAttribute('aria-invalid')).toBe('true');
+    });
+
     it('clears error after a valid selection is made', async () => {
         const fixture = await initComboBox(`
             <combo-box label="Team" required placeholder="Pick">
@@ -508,6 +563,8 @@ describe('ComboBox - Required validation', () => {
 
         expect(fixture.host.value).toBe('a');
         expect(fixture.input.getAttribute('aria-invalid')).toBeNull();
+        expect(fixture.input.validationMessage).toBe('');
+        expect(fixture.input.validity.valid).toBe(true);
         expect(fixture.error).toBeNull();
         expect(fixture.input.getAttribute('aria-errormessage')).toBeNull();
     });
@@ -824,5 +881,48 @@ describe('ComboBox - Event emission control (programmatic vs user-driven)', () =
         expect(inputSpy).toHaveBeenCalledTimes(1);
         expect(changeSpy).toHaveBeenCalledTimes(1);
         expect(fixture.host.value).toBe('a');
+    });
+});
+
+describe('ComboBox - Reset', () => {
+    it.each([
+        [
+            'value attribute',
+            'component',
+            false,
+            '<combo-box label="City" value="initial"><option value="initial">Initial</option><option value="changed">Changed</option></combo-box>',
+        ],
+        ['value attribute', 'form', false, '<combo-box label="City" value="initial"><option value="initial">Initial</option><option value="changed">Changed</option></combo-box>'],
+        ['selected option', 'component', false, '<combo-box label="City"><option value="initial" selected>Initial</option><option value="changed">Changed</option></combo-box>'],
+        ['selected option', 'form', false, '<combo-box label="City"><option value="initial" selected>Initial</option><option value="changed">Changed</option></combo-box>'],
+        [
+            'value attribute',
+            'component',
+            true,
+            '<combo-box label="City" value="initial"><option value="initial">Initial</option><option value="changed">Changed</option></combo-box>',
+        ],
+        ['value attribute', 'form', true, '<combo-box label="City" value="initial"><option value="initial">Initial</option><option value="changed">Changed</option></combo-box>'],
+        ['selected option', 'component', true, '<combo-box label="City"><option value="initial" selected>Initial</option><option value="changed">Changed</option></combo-box>'],
+        ['selected option', 'form', true, '<combo-box label="City"><option value="initial" selected>Initial</option><option value="changed">Changed</option></combo-box>'],
+    ])('when initial value is from the %s and %s reset is used, it restores the selection', async (_source, resetType, changed, markup) => {
+        const fixture = await initComboBox(markup);
+
+        if (changed) {
+            fixture.host.value = 'changed';
+            await fixture.host.updateComplete;
+        }
+
+        if (resetType === 'component') {
+            fixture.host.reset();
+            await fixture.host.updateComplete;
+        } else {
+            await fixture.user.click(fixture.reset);
+            await new Promise(resolve => requestAnimationFrame(resolve));
+            await fixture.host.updateComplete;
+        }
+
+        expect(fixture.host.value).toBe('initial');
+        expect(fixture.input.value).toBe('initial');
+        expect(fixture.display.textContent).toContain('Initial');
     });
 });

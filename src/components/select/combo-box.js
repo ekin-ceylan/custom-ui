@@ -426,10 +426,12 @@ super.firstUpdated(changed);
 
     #onPointerDownOutside = e => {
         const path = e.composedPath();
+
         if (!path.includes(this.comboboxDiv)) {
             this.#closeListAndValidate();
         }
     };
+
     #onPositionInvalidated = () => this.#closeListAndValidate();
 
     #calcListSizeAndDirection() {
