@@ -11,6 +11,7 @@ import { ifDefined } from '../modules/utilities.js';
  * * `get inputElement()`: MUST be overridden to return the native DOM element (e.g., using `@query('input')`).
  * * `setupFirstInteraction()`: MUST be overridden to define how the component detects user interaction and dispatches the 'first-interaction' event.
  * * `label`: The `label` property is inherently required by this base class and must be provided by the consumer.
+ * @template {string | boolean | number}  [TValue=string]
  * @abstract Not intended to be used directly in component definitions (for example, with customElements.define). Extend this class to create concrete components.
  * @mixes PropValidatorMixin - Provides required and warning field validation logic. Components can specify required fields that must be set and warning fields that trigger console warnings when empty.
  * @mixes UniqueIdGeneratorMixin - Provides a unique ID generator for creating stable, minify-safe component identifiers.
@@ -39,10 +40,10 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
     /**
      * This is used to reset the form control to its initial state when the form is reset.
      * Subclasses can override this getter to provide a different reset value if needed.
-     * @returns {string}
+     * @returns {TValue}
      */
     get resetValue() {
-        return this.getAttribute('value') || '';
+        return /** @type {TValue} */ (this.getAttribute('value') || '');
     }
 
     /**
@@ -88,6 +89,7 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
     get fieldId() {
         return `${this.componentName}-${this.uniqueId}`;
     }
+
     /**
      * Returns the unique ID for the label element.
      * @returns {string}
@@ -95,6 +97,7 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
     get labelId() {
         return `${this.componentName}-label-${this.uniqueId}`;
     }
+
     /**
      * Returns the unique ID for the error message element.
      * @returns {string | null}
@@ -126,8 +129,8 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
         this.name = undefined;
         /** The label associated with the form control. @type {string} */
         this.label = '';
-        /** The current value of the form control. @type {string} */
-        this.value = '';
+        /** The current value of the form control. @type {TValue} */
+        this.value = /** @type {TValue} */ ('');
         /**
          * ARIA invalid state passed to the underlying control.
          *
@@ -223,7 +226,7 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
      * @category public api
      */
     clear() {
-        this.value = '';
+        this.value = /** @type {TValue} */ ('');
     }
 
     /**
@@ -243,12 +246,16 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
     reset() {
         const currentValue = this.value;
         this.value = this.resetValue;
-this.inputElement.value = this.resetValue;
-            this.requestUpdate('value', currentValue);
-                this.clearValidation();
+        this.inputElement.value = /** @type {string} */ (this.resetValue);
+        this.requestUpdate('value', currentValue);
+        this.clearValidation();
         this.#interacted = false;
         this.setupFirstInteraction();
     }
+
+    // reset davranışındaki bug'lar
+    // option selected üzerinden geliyorsa nasıl davranmalı
+    // çalışmayan caseleri yakalayan testler yazdır
 
     /**
      * Validates the input value. Updates the Validation Message and `invalid` state based on the validation result, and dispatches a `validate` custom event with the validation message.
@@ -270,7 +277,7 @@ this.inputElement.value = this.resetValue;
     /**
      * Validates the given value and returns a validation message if invalid.
      * Subclasses can override this method to provide custom validation logic.
-     * @param {string} value - The value to validate. `UnmaskedValue` if `autounmask` is enabled, otherwise the `maskedValue`.
+     * @param {TValue} value - The value to validate. `UnmaskedValue` if `autounmask` is enabled, otherwise the `maskedValue`.
      * @protected
      * @category internal hooks
      * @returns {string}

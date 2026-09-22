@@ -1,19 +1,19 @@
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { ifDefined } from '../../modules/utilities.js';
-import SelectBase from '../../base/select-base.js';
 import { lockAllScrolls, unlockAllScrolls } from '../../modules/scroll-lock-helper.js';
 import ComboOption from '../../models/ComboOption.js';
 import CustomOption from './custom-option.js';
+import OptionsControlBase from '../../base/options-control-base.js';
 
 /**
- * Custom combo box component that extends SelectBase to provide a searchable dropdown list of options. It supports both native and custom behaviors, allowing for flexible usage in various contexts.
+ * Custom combo box component that extends OptionControlBase to provide a searchable dropdown list of options. It supports both native and custom behaviors, allowing for flexible usage in various contexts.
  * - Can be used after defining like `defineElement('combo-box', ComboBox)` or `customElement.define('combo-box', ComboBox)`.
  * - The `options` property accepts an array of option objects or HTMLOptionElements to populate the dropdown list.
  * - The `value` property reflects the currently selected option's value, and the `selectedOption` property provides the full option object.
  * - The component includes built-in filtering functionality, allowing users to search through options by typing in the input field.
- * @extends {SelectBase<HTMLInputElement>}
+ * @extends {OptionsControlBase}
  */
-export default class ComboBox extends SelectBase {
+export default class ComboBox extends OptionsControlBase {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {
@@ -34,7 +34,8 @@ export default class ComboBox extends SelectBase {
     /** @type {Array<object|string>} */
     #options = [];
 
-    #focused = false; // Inputun odaklanıp odaklanmadığını takip eder
+    #cachedInput = undefined;
+    #initialValue = undefined;
 
     get focused() {
         return this.#focused;
@@ -70,11 +71,31 @@ export default class ComboBox extends SelectBase {
         });
 
         this.requestUpdate();
-        if (this.isOpen) this.#calcListSizeAndDirection();
+        if (this.open) this.#calcListSizeAndDirection();
     }
 
     get searchId() {
         return `${this.componentName}-search-${this.uniqueId}`;
+    }
+
+    get listId() {
+        return `${this.componentName}-list-${this.uniqueId}`;
+    }
+
+    /**
+     * Returns the reference to the native input element within the component. Caches the reference after the first query for performance optimization.
+     * @returns {HTMLInputElement | null}
+     */
+    get inputElement() {
+        if (this.#cachedInput == undefined) {
+            this.#cachedInput = this.renderRoot.querySelector('input[data-role="value"]');
+        }
+
+        return this.#cachedInput;
+    }
+
+    get resetValue() {
+        return this.getAttribute('value') || this.#initialValue || '';
     }
 
     // #endregion STATICS, FIELDS, GETTERS
@@ -101,34 +122,23 @@ export default class ComboBox extends SelectBase {
     firstUpdated(changed) {
 super.firstUpdated(changed);
 
-        this.inputElement = this.renderRoot.querySelector('input[data-role="value"]');
-        this.searchElement = /** @type {HTMLInputElement} */ (this.renderRoot.querySelector('input[data-role="search"]'));
+                this.searchElement = /** @type {HTMLInputElement} */ (this.renderRoot.querySelector('input[data-role="search"]'));
         this.displayElement = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[data-role="display"]'));
         this.comboboxDiv = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[role="combobox"]'));
         this.listboxDiv = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[role="listbox"]'));
         this.clearButton = /** @type {HTMLButtonElement} */ (this.renderRoot.querySelector('button[data-role="clear"]'));
 
         this.#setInputAndDisplay(this.#selectedOption);
-        this.searchElement.addEventListener('focus', () => (this.#focused = true), { once: true, capture: false });
-
+        
         if (globalThis.getComputedStyle(this.listboxDiv).overscrollBehavior != 'contain') {
             this.listboxDiv.style.overscrollBehavior = 'contain';
-        }
-    }
-
-    updated(changed) {
-        if (changed.has('value') && this.inputElement?.value != this.value) {
-            const matchedOption = this.#optionList.find(o => o.value == this.value) || null;
-            this.#onSelect(matchedOption, false);
-            this.#checkValidity();
-            this.dispatchCustomEvent('update');
         }
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
 
-        if (this.isOpen) {
+        if (this.open) {
             this.#unlockBody();
         }
     }
@@ -154,9 +164,27 @@ super.firstUpdated(changed);
 
         const option = this.#parseOption(node);
                 this.#optionList.push(option);
-        if (option.selected) this.#onSelect(option, false);
+        if (option.selected) {
+            this.#initialValue = option.value;
+this.#onSelect(option, false);
+}
 
         return false; // abort default slotting process
+    }
+
+    /** @override @protected */
+    setupFirstInteraction() {
+        // programatik atama etkiler mi native ile dene
+        this.addEventListener('open', _e => this.dispatchCustomEvent('first-interaction'), { once: true });
+    }
+
+    /** @override @protected */
+    valueUpdated() {
+        const matchedOption = this.#optionList.find(o => o.value == this.value) || null;
+        this.#onSelect(matchedOption, false);
+        this.#checkValidity();
+
+        return true;
     }
 
     // #region EVENT LISTENERS
@@ -165,7 +193,7 @@ super.firstUpdated(changed);
      * Handles focus out event to close the list.
      * @param {FocusEvent} e
      */
-    onFocusOut(e) {
+    #onFocusOut(e) {
         const rt = e.relatedTarget;
         const isNode = rt instanceof Node || rt instanceof Element;
 
@@ -174,15 +202,15 @@ super.firstUpdated(changed);
         this.#closeListAndValidate();
     }
 
-    onFocusSearch(_e) {
+    #onFocusSearch(_e) {
         this.#openList();
     }
 
-    onFocusValue(e) {
+    #onFocusValue(e) {
         e.target.parentElement.focus();
     }
 
-    onInputSearch(e) {
+    #onInputSearch(e) {
         e.stopPropagation();
         this.dispatchCustomEvent('search', e);
         this.filter = e.target.value;
@@ -190,24 +218,24 @@ super.firstUpdated(changed);
         this.#scrollToActive();
     }
 
-    onKeydown(e) {
+    #onKeydown(e) {
         if (e.target === this.clearButton) return;
         const key = e.key;
 
         if (key === 'Escape') {
             this.#closeListAndValidate();
             this.comboboxDiv.focus();
-        } else if (!this.isOpen) {
+        } else if (!this.open) {
             this.#closedKeyboardBehavior(e, key);
-        } else if (this.isOpen) {
+        } else if (this.open) {
             this.#openKeyboardBehavior(e, key);
         }
 
         // yazmaya başladığımızda arama yapılır
     }
 
-    onClick(e) {
-        if (!this.isOpen && !e.target.closest('[role="listbox"]')) {
+    #onComboboxClick(e) {
+        if (!this.open && !e.target.closest('[role="listbox"]')) {
             this.#openList();
             this.searchElement.focus();
         }
@@ -220,25 +248,25 @@ super.firstUpdated(changed);
         this.comboboxDiv.focus();
     }
 
-    onInvalid(_e) {
+#onInvalid(_e) {
         // e.preventDefault(); // mesaj baloncuğu çıkmaz
         this.#checkValidity(true);
     }
 
-    onOptionClick(option) {
+#onOptionClick(option) {
         this.#onSelect(option);
         this.#closeListAndValidate();
     }
 
-    onListboxClick(e) {
+#onListboxClick(e) {
         const optionId = this.#getOptionIdFromEvent(e);
         const option = this.filteredOptions.find(opt => opt.id === optionId);
         if (!option || option.disabled) return;
 
-        this.onOptionClick(option);
+        this.#onOptionClick(option);
     }
 
-    onListboxMouseover(e) {
+#onListboxMouseover(e) {
         const optionId = this.#getOptionIdFromEvent(e);
         const index = this.filteredOptions.findIndex(opt => opt.id === optionId);
         if (index < 0) return;
@@ -249,6 +277,7 @@ super.firstUpdated(changed);
     // #endregion EVENT LISTENERS
 
     // #region PRIVATE METHODS
+
     /**
      * Handles option selection.
      * @param {ComboOption} selectedOption
@@ -287,7 +316,7 @@ super.firstUpdated(changed);
      * @returns {boolean}
      */
     #checkValidity(force = false) {
-        if (!this.focused && !force) return true; // etkileşime girilmediyse
+        if (!this.interacted && !force) return true; // etkileşime girilmediyse
 
         const el = this.inputElement;
         const v = el.validity;
@@ -389,8 +418,9 @@ super.firstUpdated(changed);
     }
 
     #openList() {
-        if (this.isOpen) return;
-        this.isOpen = true;
+        if (this.open) return;
+        this.filterHasEnoughChars) return;
+        this.open = true;
         this.listboxDiv?.showPopover();
         this.#lockBody();
         this.#calcListSizeAndDirection();
@@ -400,7 +430,7 @@ super.firstUpdated(changed);
     }
 
     #closeList() {
-                this.isOpen = false;
+        this.open = false;
         this.listboxDiv?.hidePopover();
         this.#unlockBody();
                 this.activeIndex = -1;
@@ -534,10 +564,10 @@ super.firstUpdated(changed);
             ?disabled=${this.disabled}
             autocomplete="off"
             spellcheck="false"
-            aria-expanded=${this.isOpen}
+            aria-expanded=${this.open}
             aria-labelledby=${ifDefined(this.labelId)}
-            @focus=${this.onFocusSearch}
-            @input=${this.onInputSearch}
+            @focus=${this.#onFocusSearch}
+            @input=${this.#onInputSearch}
             @change=${e => e.stopPropagation()}
             data-role="search"
             tabindex="-1"
@@ -562,14 +592,14 @@ super.firstUpdated(changed);
                 role="combobox"
                 aria-activedescendant=${ifDefined(activeDescendantId)}
                 aria-disabled=${this.disabled ? 'true' : 'false'}
-                ?data-open=${this.isOpen}
+                ?data-open=${this.open}
                 ?data-filtered=${!!this.filter}
                 ?data-has-value=${this.inputElement?.value}
                 ?data-up=${this.directionUp}
                 tabindex="0"
-                @focusout=${this.onFocusOut}
-                @keydown=${this.onKeydown}
-                @click=${this.onClick}
+                @focusout=${this.#onFocusOut}
+                @keydown=${this.#onKeydown}
+                @click=${this.#onComboboxClick}
             >
                 <input
                     id=${this.fieldId}
@@ -583,8 +613,8 @@ super.firstUpdated(changed);
                     aria-required=${this.required ? 'true' : 'false'}
                     aria-invalid=${ifDefined(this.ariaInvalid)}
                     aria-readonly="true"
-                    @invalid=${this.onInvalid}
-                    @focus=${this.onFocusValue}
+                    @invalid=${this.#onInvalid}
+                    @focus=${this.#onFocusValue}
                     data-role="value"
                     tabindex="-1"
                 />
@@ -594,9 +624,9 @@ super.firstUpdated(changed);
                     id=${this.listId}
                     role="listbox"
                     popover="manual"
-                    aria-expanded=${this.isOpen ? 'true' : 'false'}
-                    @click=${this.onListboxClick}
-                    @mouseover=${this.onListboxMouseover}
+                    aria-expanded=${this.open ? 'true' : 'false'}
+                    @click=${this.#onListboxClick}
+                    @mouseover=${this.#onListboxMouseover}
                 >
                     ${this.renderListContent()}
                 </div>

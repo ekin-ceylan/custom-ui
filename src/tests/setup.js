@@ -5,7 +5,7 @@
 import userEvent from '@testing-library/user-event';
 
 /**
- * Initializes a InputBase component for testing.
+ * Initializes a StandardControlBase component for testing.
  * @param {string} elementStr
  * @param {string} [lang='tr']
  * @returns {Promise<import('./types').TestFixture>} A promise that resolves to an array containing the input element, host component, user event instance, form element, submit button, and reset button.

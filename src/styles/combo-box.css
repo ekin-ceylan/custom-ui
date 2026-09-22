@@ -199,3 +199,26 @@ combo-box input[data-role='search'] {
     width: 100%;
     padding-right: calc(var(--cbx-clear-right-distance) + var(--cbx-indicator-size));
 }
+
+combo-box-pop [role='combobox'] {
+    anchor-scope: all; /* %85 */
+    /* position-anchor:  %86 */
+}
+
+combo-box-pop [role='listbox'][popover] {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+
+    position-area: block-end span-inline-start; /* %85 */
+    inline-size: anchor-size(width);
+    max-block-size: min(50vh, 30rem);
+
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable; /* %94.5 */
+
+    position-try-fallbacks: flip-block; /* %85 */
+
+    /* position-anchor %86 */
+}

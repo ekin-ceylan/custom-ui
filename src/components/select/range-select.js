@@ -1,14 +1,47 @@
 import { html } from 'lit';
 import { ifDefined } from '../../modules/utilities.js';
-import InputBase from '../../base/input-base.js';
+import StandardControlBase from '../../base/standard-control-base.js';
 
-export default class RangeSelect extends InputBase {
+/**
+ * @extends StandardControlBase
+ */
+export default class RangeSelect extends StandardControlBase {
     static get properties() {
         return {
+            ...super.properties,
             min: { type: Number },
             max: { type: Number },
             step: { type: Number },
         };
+    }
+
+    #cachedInput;
+
+    /**
+     * Returns the reference to the native input element within the component. Caches the reference after the first query for performance optimization.
+     * @returns {HTMLInputElement | null}
+     */
+    get inputElement() {
+        if (this.#cachedInput == undefined) {
+            this.#cachedInput = this.renderRoot.querySelector('input');
+        }
+
+        return this.#cachedInput;
+    }
+
+    constructor() {
+        super();
+        this.min = 0;
+        this.max = 100;
+        /** @type {number} */
+        this.step = 1;
+        this.value = String(this.min || 0);
+        this.label = '';
+        this.required = false;
+    }
+
+    setupFirstInteraction() {
+        this.addEventListener('input', _e => this.dispatchCustomEvent('first-interaction'), { once: true });
     }
 
     onInput(e) {
@@ -54,21 +87,5 @@ export default class RangeSelect extends InputBase {
             </div>
             ${this.renderErrorMessage()}
         `;
-    }
-
-    firstUpdated(changed) {
-        super.firstUpdated(changed);
-        this.inputElement = this.renderRoot.querySelector('input');
-    }
-
-    constructor() {
-        super();
-        this.min = 0;
-        this.max = 100;
-        /** @type {number} */
-        this.step = 1;
-        this.value = String(this.min || 0);
-        this.label = '';
-        this.required = false;
     }
 }

@@ -94,6 +94,7 @@ class RichTextPopoverTextBox extends TextControlBase {
     }
 }
 
+/** @extends {CheckBox} */
 class RichTextPopoverCheckbox extends CheckBox {
     constructor() {
         super();
