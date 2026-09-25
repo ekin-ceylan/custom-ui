@@ -2,6 +2,7 @@ import { isEmpty } from '../../modules/utilities.js';
 import { mixins } from '../../modules/mixin-utils.js';
 import InputMaskMixin from '../../mixins/input-mask-mixin.js';
 import TextControlBase from '../../base/text-control-base.js';
+import { html } from 'lit';
 
 /**
  * Input component that provides phone number format validation and masking.
@@ -78,6 +79,11 @@ export default class PhoneBox extends mixins(TextControlBase, InputMaskMixin) {
         if (newValue.length > 11) return false; // Maksimum uzunluk 11 olmalı
 
         return /\d/.test(keyDownEvent.key);
+    }
+
+    renderContainerContent() {
+        const superContent = super.renderContainerContent();
+        return html`${superContent}${this.renderInputMask()}`;
     }
 }
 

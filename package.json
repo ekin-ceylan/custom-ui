@@ -1,6 +1,6 @@
 {
     "name": "custom-ui",
-    "version": "0.9.16",
+    "version": "0.9.17",
     "title": "Custom UI",
     "description": "Custom UI: Field/data-type specific, accessible, extensible Web Components.",
     "author": "Ekin Ceylan <ekinceylan@gmail.com> (https://github.com/ekin-ceylan)",

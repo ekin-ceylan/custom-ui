@@ -123,7 +123,7 @@ export default class TextControlBase extends StandardControlBase {
      * @returns {HTMLInputElement | null}
      */
     get inputElement() {
-        if (this.#cachedInput === undefined) {
+        if (this.#cachedInput == undefined) {
             this.#cachedInput = this.renderRoot?.querySelector('input');
         }
 

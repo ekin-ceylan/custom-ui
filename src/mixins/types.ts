@@ -79,10 +79,4 @@ export interface InputMask {
      * @protected
      */
     renderInputMask(): import('lit').TemplateResult | typeof import('lit').nothing;
-
-    /**
-     * @override Renders the container content including the input mask.
-     * @protected
-     */
-    renderContainerContent(): import('lit').TemplateResult | typeof import('lit').nothing;
 }

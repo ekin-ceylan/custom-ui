@@ -2,6 +2,7 @@ import { checkTcNo } from '../../modules/utilities.js';
 import TextControlBase from '../../base/text-control-base.js';
 import InputMaskMixin from '../../mixins/input-mask-mixin.js';
 import { mixins } from '../../modules/mixin-utils.js';
+import { html } from 'lit';
 
 /** @extends TextControlBase */
 export default class TcBox extends mixins(TextControlBase, InputMaskMixin) {
@@ -40,5 +41,10 @@ export default class TcBox extends mixins(TextControlBase, InputMaskMixin) {
         if (value && !checkTcNo(value)) {
             return this.patternValidationMessage || 'Geçersiz TC Kimlik Numarası';
         }
+    }
+
+    renderContainerContent() {
+        const superContent = super.renderContainerContent();
+        return html`${superContent}${this.renderInputMask()}`;
     }
 }
