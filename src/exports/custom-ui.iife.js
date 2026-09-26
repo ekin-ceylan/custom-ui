@@ -39,13 +39,11 @@ export { default as PasswordBox } from '../components/text-input/password-box.js
 export { default as ConfirmPasswordBox } from '../components/text-input/confirm-password-box.js';
 export { default as NewPasswordBox } from '../components/text-input/new-password-box.js';
 export { default as IntegerBox } from '../components/text-input/integer-box.js';
-
+export { default as Autocomplete } from '../components/text-input/autocomplete.js';
 export { default as TextArea } from '../components/text-area/text-area.js';
 
 // Select
 export { default as SelectBox } from '../components/select/select-box.js';
-export { default as CustomOption } from '../components/select/custom-option.js';
-export { default as CustomOptgroup } from '../components/select/custom-optgroup.js';
 export { default as ComboBox } from '../components/select/combo-box.js';
 export { default as RangeSelect } from '../components/select/range-select.js';
 export { default as CheckBox } from '../components/select/check-box.js';
@@ -62,3 +60,8 @@ export { default as Pagination } from '../components/table/pagination.js';
 
 // Button
 export { default as UrlLink } from '../components/button/url-link.js';
+
+// Parts
+export { default as CustomOption } from '../components/parts/custom-option.js';
+export { default as CustomOptgroup } from '../components/parts/custom-optgroup.js';
+export { default as Suggestion } from '../components/parts/suggestion-option.js';

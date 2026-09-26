@@ -1,6 +1,6 @@
 import { html } from 'lit';
 import Option from './Option.js';
-import CustomOption from '../components/select/custom-option.js';
+import CustomOption from '../components/parts/custom-option.js';
 import { spread } from '../modules/spread.js';
 import HtmlBaseModel from './HtmlBaseModel.js';
 import { findLastBy, isEmpty } from '../modules/utilities.js';

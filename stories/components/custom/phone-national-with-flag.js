@@ -110,6 +110,11 @@ export class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
         this.placeholder = country?.placeholder;
         this.requestUpdate('pattern');
     }
+
+    renderContainerContent() {
+        const superContent = super.renderContainerContent();
+        return html`${superContent}${this.renderInputMask()}`;
+    }
 }
 
 // defineComponent('combo-box', ComboBox);

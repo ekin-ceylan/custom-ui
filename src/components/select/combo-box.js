@@ -2,8 +2,9 @@ import { html, nothing } from 'lit';
 import { ifDefined } from '../../modules/utilities.js';
 import { lockAllScrolls, unlockAllScrolls } from '../../modules/scroll-lock-helper.js';
 import ComboOption from '../../models/ComboOption.js';
-import CustomOption from './custom-option.js';
+import CustomOption from '../parts/custom-option.js';
 import OptionsControlBase from '../../base/options-control-base.js';
+import Keys from '../../enums/Keys.js';
 
 /**
  * Custom combo box component that extends OptionControlBase to provide a searchable dropdown list of options. It supports both native and custom behaviors, allowing for flexible usage in various contexts.
@@ -218,17 +219,18 @@ this.#onSelect(option, false);
         this.#scrollToActive();
     }
 
+/** @param {KeyboardEvent} e */
     #onKeydown(e) {
         if (e.target === this.clearButton) return;
-        const key = e.key;
+        const keyCode = e.code;
 
-        if (key === 'Escape') {
+        if (keyCode === Keys.ESCAPE) {
             this.#closeListAndValidate();
             this.comboboxDiv.focus();
         } else if (!this.open) {
-            this.#closedKeyboardBehavior(e, key);
+            this.#closedKeyboardBehavior(e, keyCode);
         } else if (this.open) {
-            this.#openKeyboardBehavior(e, key);
+            this.#openKeyboardBehavior(e, keyCode);
         }
 
         // yazmaya başladığımızda arama yapılır
@@ -330,17 +332,17 @@ this.#onSelect(option, false);
         return !this.validationMessage;
     }
 
-    #openKeyboardBehavior(e, key) {
-        const isArrowKey = key === 'ArrowDown' || key === 'ArrowUp';
+    #openKeyboardBehavior(e, keyCode) {
+        const isArrowKey = keyCode === Keys.ARROW_DOWN || keyCode === Keys.ARROW_UP;
 
         if (isArrowKey) {
             e.preventDefault();
-            this.activeIndex = this.#getAdjacentIndex(key === 'ArrowDown');
+            this.activeIndex = this.#getAdjacentIndex(keyCode === Keys.ARROW_DOWN);
             this.#scrollToActive();
-        } else if (key === 'Tab' || key === 'Enter') {
+        } else if (keyCode === Keys.TAB || keyCode === Keys.ENTER) {
             e.preventDefault();
 
-            if (!this.nativeBehavior && key === 'Enter') {
+            if (!this.nativeBehavior && keyCode === Keys.ENTER) {
                 this.#selectActiveOption();
             }
 
@@ -349,19 +351,19 @@ this.#onSelect(option, false);
         }
     }
 
-    #closedKeyboardBehavior(e, key) {
-        const isArrowKey = key === 'ArrowDown' || key === 'ArrowUp';
+    #closedKeyboardBehavior(e, keyCode) {
+        const isArrowKey = keyCode === Keys.ARROW_DOWN || keyCode === Keys.ARROW_UP;
 
         // Seçim yap
         if (this.nativeBehavior && isArrowKey) {
             e.preventDefault();
-            const [option, idx] = this.#getAdjacentOption(key === 'ArrowDown');
+            const [option, idx] = this.#getAdjacentOption(keyCode === Keys.ARROW_DOWN);
 
             if (option) {
                 this.activeIndex = idx;
                 this.#onSelect(option);
             }
-        } else if (key === ' ' || key === 'Enter') {
+        } else if (keyCode === Keys.SPACE || keyCode === Keys.ENTER) {
             e.preventDefault();
             this.#openList();
             this.searchElement.focus();

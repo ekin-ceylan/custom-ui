@@ -3,8 +3,8 @@ import { findLastBy, ifDefined, isEmpty } from '../../modules/utilities.js';
 import { spread } from '../../modules/spread.js';
 import Option from '../../models/Option.js';
 import OptionGroup from '../../models/OptionGroup.js';
-import CustomOption from './custom-option.js';
-import CustomOptgroup from './custom-optgroup.js';
+import CustomOption from '../parts/custom-option.js';
+import CustomOptgroup from '../parts/custom-optgroup.js';
 import OptionsControlBase from '../../base/options-control-base.js';
 import Keys from '../../enums/Keys.js';
 

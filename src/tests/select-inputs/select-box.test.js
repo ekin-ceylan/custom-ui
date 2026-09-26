@@ -1,6 +1,6 @@
 import SelectBox from '../../components/select/select-box.js';
-import CustomOption from '../../components/select/custom-option.js';
-import CustomOptgroup from '../../components/select/custom-optgroup.js';
+import CustomOption from '../../components/parts/custom-option.js';
+import CustomOptgroup from '../../components/parts/custom-optgroup.js';
 
 defineElement('select-box', SelectBox);
 defineElement('custom-option', CustomOption);

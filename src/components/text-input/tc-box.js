@@ -4,7 +4,9 @@ import InputMaskMixin from '../../mixins/input-mask-mixin.js';
 import { mixins } from '../../modules/mixin-utils.js';
 import { html } from 'lit';
 
-/** @extends TextControlBase */
+/**
+ * Turkish Identification Number Input Box Component
+ */
 export default class TcBox extends mixins(TextControlBase, InputMaskMixin) {
     static get properties() {
         return {
