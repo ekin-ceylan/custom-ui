@@ -30,7 +30,7 @@ export default class StandardControlBase extends FormControlBase {
             ...super.properties,
             hideLabel: { type: Boolean, attribute: 'hide-label' },
             clearable: { type: Boolean, attribute: 'clearable' },
-            placeholder: { type: String, reflect: true },
+            placeholder: { type: String },
         };
     }
 
@@ -45,7 +45,7 @@ export default class StandardControlBase extends FormControlBase {
         /** @type {boolean} Whether to hide the label visually */
         this.hideLabel = false;
         /** @type {string} Placeholder text for the input */
-        this.placeholder = undefined;
+        this.placeholder = '';
         /** @type {boolean} Show clear button */
         this.clearable = false;
     }

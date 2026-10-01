@@ -1,19 +1,9 @@
 import WarningField from '../models/WarningField';
+import ListboxItem from '../models/ListboxItem';
+import type { nothing } from 'lit';
 
 /** A generic type that represents any class constructor. */
 export type Constructor<T> = new (...args: any[]) => T;
-
-export interface UniqueIdGenerator {
-    /** Gets the unique ID of the component. */
-    get uniqueId(): string;
-
-    /** Generates a unique ID string by incrementing an internal counter and
-     * converting it to a hexadecimal string. The resulting ID is padded
-     * with leading zeros to ensure it is at least 4 characters long.
-     * @protected
-     */
-    generateUniqueId(): string;
-}
 
 export interface SlotCollector {
     /**
@@ -60,23 +50,50 @@ export interface PropValidator {
     get warningFields(): WarningField[];
 }
 
-export interface InputMask {
+export interface Listbox {
+    /** Options currently displayed in the listbox. */
+    options: ListboxItem[];
+    /** Index of the active option, or -1 when no option is active. */
+    activeIndex: number;
+    /** Whether the listbox is positioned above its anchor. */
+    directionUp: boolean;
+    /** Current open state of the listbox. */
+    open: boolean;
+    /** Gets Listbox element's stable ID. */
+    get listId(): string;
+    /** Gets the listbox element within the component's render root. */
+    get listboxElement(): HTMLElement | null;
+
+    /** Opens the listbox, locks page scrolling, and positions it against its anchor. */
+    openList(): void;
+    /** Closes the listbox, unlocks page scrolling, and resets the active index. */
+    closeList(): void;
+    /** Positions the listbox against its anchor within the viewport. */
+    setListPosition(): void;
+    /** Scrolls the active item into view, falling back to the first option. */
+    scrollToActive(instant?: boolean): void;
     /**
-     * The input mask text displayed when the input is being edited.
-     * If not set, it defaults to the value of the `placeholder` property.
-     * @protected
+     * Handles the click event on a listbox option.
+     * @abstract
      */
-    inputMask: string;
+    onOptionClick(optionId: number | string): void;
+    /**
+     * Handles the hover event on a listbox option.
+     * @abstract
+     */
+    onOptionHover(optionId: number | string): void;
+    /** Calls the method to request the listbox to close. */
+    onRequestClose(): void;
 
     /**
-     * The rendered input mask content.
-     * @protected
+     * Renders the indicator icon for the control, typically a chevron or arrow, indicating that the control can be expanded or collapsed.
+     * This method can be overridden in subclasses to provide a custom indicator.
      */
-    renderInputMaskContent(): import('lit').TemplateResult | typeof import('lit').nothing;
+    renderIndicator(): import('lit').TemplateResult | typeof nothing;
 
-    /**
-     * Renders the input mask (ghost text) as an underlay behind the actual input value.
-     * @protected
-     */
-    renderInputMask(): import('lit').TemplateResult | typeof import('lit').nothing;
+    /** Renders the content of the listbox. */
+    renderListContent(): import('lit').TemplateResult | typeof nothing;
+
+    /** Renders the listbox and its items. */
+    renderListBox(): import('lit').TemplateResult | typeof nothing;
 }

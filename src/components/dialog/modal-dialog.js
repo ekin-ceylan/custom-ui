@@ -1,7 +1,8 @@
 import { html, nothing } from 'lit';
 import SlotCollectorMixin from '../../mixins/slot-collector-mixin.js';
+import LightComponentBase from '../../base/light-component-base.js';
 import { hideBodyScroll, showBodyScroll } from '../../modules/scroll-lock-helper.js';
-import { lightMixins } from '../../modules/mixin-utils.js';
+import { mixins } from '../../modules/mixin-utils.js';
 import Keys from '../../enums/Keys.js';
 import { spread } from '../../modules/spread.js';
 
@@ -23,7 +24,7 @@ import { spread } from '../../modules/spread.js';
  * </modal-dialog>
  * ```
  */
-export default class ModalDialog extends lightMixins(SlotCollectorMixin) {
+export default class ModalDialog extends mixins(LightComponentBase, SlotCollectorMixin) {
     // #region FIELDS
 
     /**

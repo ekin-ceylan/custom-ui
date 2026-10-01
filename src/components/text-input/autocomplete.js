@@ -1,15 +1,16 @@
+import { html, nothing } from 'lit';
 import TextControlBase from '../../base/text-control-base.js';
 import SlotCollectorMixin from '../../mixins/slot-collector-mixin.js';
-import InputMaskMixin from '../../mixins/input-mask-mixin.js';
+import ListboxMixin from '../../mixins/listbox-mixin.js';
 import Suggestion from '../../models/Suggestion.js';
 import SuggestionOption from '../parts/suggestion-option.js';
-import { ifDefined } from '../../modules/utilities.js';
 import Keys from '../../enums/Keys.js';
-import { lockAllScrolls, unlockAllScrolls } from '../../modules/scroll-lock-helper.js';
-import { mixins } from '../../modules/mixin-utils';
-import { html, nothing } from 'lit';
+import { ifDefined } from '../../modules/utilities.js';
+import { mixins } from '../../modules/mixin-utils.js';
+import { renderMaskPlaceholder } from '../../modules/mask-placeholder.js';
+import { generateUniqueId } from '../../modules/unique-id-generator.js';
 
-export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin, SlotCollectorMixin) {
+export default class Autocomplete extends mixins(TextControlBase, SlotCollectorMixin, ListboxMixin) {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {
@@ -17,10 +18,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
             ...super.properties,
             filter: { type: String, state: true, attribute: false }, // Filtre metni
             filterThreshold: { type: Number, attribute: 'filter-threshold' }, // Filtrenin başlaması için gereken minimum karakter sayısı
-            activeIndex: { type: Number, state: true, attribute: false },
-            directionUp: { type: Boolean, attribute: false, reflect: false }, // açılır kutu yönü
-            open: { type: Boolean, attribute: false }, // Açık / kapalı
-            options: { type: Array, attribute: false, noAccessor: true }, // Options array, can contain Suggestion objects
+            inputMask: { type: String, state: true, attribute: false }, // Input mask value
             //
             pattern: { type: String, reflect: true },
             allowPattern: { type: String, attribute: 'allow-pattern' },
@@ -54,7 +52,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
     }
 
     get options() {
-        return this.#options; // SLOT ÜZERİNDEN GELİYORSA OPTIONS BOŞ OLUYOR !!
+        return this.#options.length ? this.#options : this.#optionList; // SLOT ÜZERİNDEN GELİYORSA OPTIONS BOŞ OLUYOR !!
     }
     set options(val) {
         if (!Array.isArray(val)) {
@@ -65,11 +63,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
         this.#optionList = this.options.map(this.#toListElement.bind(this));
 
         this.requestUpdate();
-        if (this.open) this.#calcListSizeAndDirection();
-    }
-
-    get listId() {
-        return `${this.componentName}-list-${this.uniqueId}`;
+        if (this.open) this.setListPosition();
     }
 
     // #endregion STATICS, FIELDS, GETTERS
@@ -79,17 +73,10 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
     constructor() {
         super();
 
-        /** @type {boolean} */
-        this.open = false;
-        /** @type {string} */
-        /** @type {Object|string[]} */
-        this.options = [];
         /** @type {string} */
         this.filter = '';
         /** @type {Number} */
         this.filterThreshold = 1;
-        /** @type {Number} */
-        this.activeIndex = -1;
 
         this.inputMask = '';
         this.autocomplete = 'off';
@@ -107,14 +94,6 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
             this.listboxDiv.style.overscrollBehavior = 'contain';
         }
     }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-
-        if (this.open) {
-            this.#unlockBody();
-        }
-    }
     // #endregion LIFECYCLE METHODS
 
     // #region INTERNAL HOOKS
@@ -122,7 +101,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
     validateNode(node, slotName) {
         if (slotName != 'default') return true;
 
-        const hasOptions = this.options?.length > 0;
+        const hasOptions = this.#options?.length > 0;
         const isAllowedType = node instanceof SuggestionOption;
 
         if (hasOptions) {
@@ -143,6 +122,18 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
 
     // #endregion INTERNAL HOOKS
 
+    /** @override */
+    openList() {
+        if (this.filteredOptions.length === 0) return;
+        if (!this.filterHasEnoughChars) return;
+        super.openList();
+    }
+
+    closeList() {
+        super.closeList();
+        this.inputMask = '';
+    }
+
     // #region EVENT LISTENERS
 
     #onInput(e) {
@@ -151,16 +142,17 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
 
         if (this.filterHasEnoughChars) {
             this.dispatchCustomEvent('search', e);
-            this.#openList();
+            this.openList();
         }
 
         if (this.filteredOptions.length === 0) {
-            this.#closeList();
+            this.closeList();
             return;
         }
 
+        this.setListPosition();
         this.activeIndex = 0;
-        this.#scrollToActive();
+        this.scrollToActive();
     }
 
     /** @param {KeyboardEvent} e */
@@ -169,7 +161,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
         const keyCode = e.code;
 
         if (keyCode === Keys.ESCAPE) {
-            this.#closeList();
+            this.closeList();
         } else if (!this.open) {
             this.#closedKeyboardBehavior(e, keyCode);
         } else if (this.open) {
@@ -177,50 +169,26 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
         }
     }
 
-    #onOptionClick(option) {
-        this.#onSelect(option);
-        this.#closeList();
-    }
-
-    #onListboxClick(e) {
-        const optionId = this.#getOptionIdFromEvent(e);
-        const option = this.filteredOptions.find(opt => opt.id === optionId);
+    /** @override Handles the click event on an option. */
+    onOptionClick(optionId) {
+        const option = this.#optionList.find(opt => opt.id === optionId);
         if (!option || option.disabled) return;
 
-        this.#onOptionClick(option);
+        this.#onSelect(option);
+        this.closeList();
     }
 
-    #onListboxMouseover(e) {
-        const optionId = this.#getOptionIdFromEvent(e);
+    /** @override Handles the hover event on a listbox option. */
+    onOptionHover(optionId) {
         const index = this.filteredOptions.findIndex(opt => opt.id === optionId);
         if (index < 0) return;
 
         this.activeIndex = index;
     }
 
-    #onPointerDownOutside = e => {
-        const path = e.composedPath();
-
-        if (!path.includes(this.comboboxDiv)) {
-            this.#closeList();
-        }
-    };
-
     // #endregion EVENT LISTENERS
 
     // #region PRIVATE METHODS
-
-    /**
-     * Resolves option and index from a delegated listbox event.
-     * @param {Event} event
-     * @returns {string} The ID of the option element that was interacted with.
-     */
-    #getOptionIdFromEvent(event) {
-        const target = /** @type {HTMLElement} */ (event.target);
-        const optionElement = target?.closest('[role="option"]');
-
-        return optionElement?.id || '';
-    }
 
     /**
      * Handles option selection.
@@ -235,57 +203,6 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
             this.dispatchCustomEvent('input');
             this.dispatchCustomEvent('change');
         }
-    }
-
-    #openList() {
-        if (this.open) return;
-        if (this.filteredOptions.length === 0) return;
-        if (!this.filterHasEnoughChars) return;
-        this.open = true;
-        this.listboxDiv?.showPopover();
-        this.#lockBody();
-        this.#calcListSizeAndDirection();
-        this.dispatchCustomEvent('open');
-        this.activeIndex = 0;
-        this.#scrollToActive(true);
-    }
-
-    #closeList() {
-        this.open = false;
-        this.listboxDiv?.hidePopover();
-        this.#unlockBody();
-        this.activeIndex = -1;
-        this.inputMask = '';
-        this.dispatchCustomEvent('close');
-    }
-
-    #scrollToActive(instant = false) {
-        requestAnimationFrame(() => {
-            const listbox = this.renderRoot.querySelector('div[role="listbox"]');
-            const option =
-                this.renderRoot.querySelector('div[role="listbox"] div[role="option"][data-active]') ||
-                this.renderRoot.querySelector('div[role="listbox"] div:nth-child(1 of [role="option"])');
-
-            if (!option || !listbox) return;
-
-            const optionRect = option.getBoundingClientRect();
-            const listRect = listbox.getBoundingClientRect();
-            const offset = optionRect.top - listRect.top;
-            const scroll = listbox.scrollTop + (offset - listRect.height / 2 + optionRect.height / 2);
-            listbox.scrollTo({ top: scroll, behavior: instant ? 'auto' : 'smooth' });
-        });
-
-        this.inputMask = this.filteredOptions[this.activeIndex]?.suggestionText || '';
-    }
-
-    #lockBody() {
-        lockAllScrolls(this.listboxDiv, this.#closeList);
-        globalThis.addEventListener('pointerdown', this.#onPointerDownOutside, { capture: true });
-    }
-
-    #unlockBody() {
-        unlockAllScrolls(this.listboxDiv);
-        globalThis.removeEventListener('pointerdown', this.#onPointerDownOutside, { capture: true });
     }
 
     #getAdjacentIndex(next) {
@@ -311,11 +228,11 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
         if (isArrowKey) {
             e.preventDefault();
             this.activeIndex = this.#getAdjacentIndex(keyCode === Keys.ARROW_DOWN);
-            this.#scrollToActive();
+            this.scrollToActive();
         } else if (keyCode === Keys.TAB || keyCode === Keys.ENTER) {
             e.preventDefault();
             this.#selectActiveOption();
-            this.#closeList();
+            this.closeList();
         }
     }
 
@@ -325,49 +242,9 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
         // Listeyi aç
         if (isArrowKey) {
             e.preventDefault();
-            this.#openList();
+            this.openList();
             this.#openKeyboardBehavior(e, keyCode);
         }
-    }
-
-    #calcListSizeAndDirection() {
-        requestAnimationFrame(() => {
-            const rect = this.comboboxDiv.getBoundingClientRect();
-            const listbox = this.listboxDiv;
-            listbox.style.removeProperty('max-height');
-
-            const style = globalThis.getComputedStyle(listbox);
-            const maxHeight = Number.parseFloat(style.maxHeight) || window.innerHeight;
-            const borderTop = Number.parseFloat(style.borderTopWidth) || 0;
-            const borderBottom = Number.parseFloat(style.borderBottomWidth) || 0;
-
-            const topEdge = rect.top;
-            const bottomEdge = rect.bottom;
-            const leftEdge = Math.max(0, rect.x);
-            const minWidth = Math.min(0, rect.x) + rect.width;
-            const borderY = borderTop + borderBottom;
-            const spaceBelow = window.innerHeight - bottomEdge;
-            const spaceAbove = topEdge;
-            const listHeight = Math.min(listbox.scrollHeight + borderY, maxHeight);
-
-            this.directionUp = spaceBelow < listHeight && spaceAbove > spaceBelow;
-
-            if (this.directionUp) {
-                const effectiveHeight = Math.min(listHeight, spaceAbove);
-                listbox.style.maxHeight = `${effectiveHeight}px`;
-                listbox.style.bottom = `${window.innerHeight - topEdge}px`;
-                listbox.style.removeProperty('top');
-            } else {
-                const effectiveHeight = Math.min(listHeight, spaceBelow);
-                listbox.style.maxHeight = `${effectiveHeight}px`;
-                listbox.style.top = `${bottomEdge}px`;
-                listbox.style.removeProperty('bottom');
-            }
-
-            listbox.style.minWidth = `${minWidth}px`;
-            listbox.style.left = `${leftEdge}px`;
-            this.requestUpdate();
-        });
     }
 
     /**
@@ -379,7 +256,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
     #optToDiv(opt, i) {
         const isActive = this.activeIndex === i;
 
-        return opt.toHtml(isActive);
+        return opt.renderListboxItem(isActive);
     }
 
     /**
@@ -389,7 +266,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
      */
     #parseOption(opt) {
         const suggestion = new Suggestion(opt);
-        suggestion.id = `option-${this.generateUniqueId()}`;
+        suggestion.id = `option-${generateUniqueId()}`;
 
         return suggestion;
     }
@@ -411,21 +288,9 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
 
     // #region RENDER METHODS
 
+    /** @override Renders the content of the list, including the "no options" item and the list of options. */
     renderListContent() {
         return html`${this.filteredOptions.map(this.#optToDiv.bind(this))}`;
-    }
-
-    renderListBox() {
-        return html`<div
-            id=${this.listId}
-            role="listbox"
-            popover="manual"
-            aria-expanded=${this.open ? 'true' : 'false'}
-            @click=${this.#onListboxClick}
-            @mouseover=${this.#onListboxMouseover}
-        >
-            ${this.renderListContent()}
-        </div>`;
     }
 
     /**
@@ -435,7 +300,7 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
      */
     renderContainerContent() {
         const superContent = super.renderContainerContent();
-        return html`${superContent}${this.renderListBox()}${this.renderInputMask()}`;
+        return html`${superContent}${this.renderListBox()}${renderMaskPlaceholder(this.value, this.inputMask)}`;
     }
 
     /**
@@ -453,6 +318,8 @@ export default class Autocomplete extends mixins(TextControlBase, InputMaskMixin
                 data-role="container"
                 aria-activedescendant=${ifDefined(activeDescendantId)}
                 aria-disabled=${this.disabled ? 'true' : 'false'}
+                aria-controls=${this.listId}
+                aria-expanded=${this.open}
                 ?data-open=${this.open}
                 ?data-filtered=${!!this.filter}
                 ?data-has-value=${this.inputElement?.value}

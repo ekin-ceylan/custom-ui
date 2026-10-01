@@ -1,15 +1,15 @@
 import { html } from 'lit';
 import { spread } from '../modules/spread.js';
 import { ifDefined, sanitizeHtml } from '../modules/utilities.js';
-import HtmlBaseModel from './HtmlBaseModel.js';
+import ListboxItem from './ListboxItem.js';
 
 /**
  * Represents a suggestion model that can have child options (optgroup).
- * @extends HtmlBaseModel
+ * @extends ListboxItem
  */
-export default class Suggestion extends HtmlBaseModel {
+export default class Suggestion extends ListboxItem {
     #safeInnerHTML = '';
-    id = '';
+
     /**
      * The text to be used as the suggestion.
      * @type {string}
@@ -33,11 +33,10 @@ export default class Suggestion extends HtmlBaseModel {
     }
 
     /**
-     * Converts the suggestion option model to an HTML template.
-     * @param {boolean} isActive
-     * @returns {import('lit').TemplateResult}
+     * @param {boolean} isActive Indicates whether the suggestion option is currently active.
+     * @override Converts the suggestion option model to an HTML template.
      */
-    toHtml(isActive) {
+    renderListboxItem(isActive) {
         return html`
             <div
                 id=${ifDefined(this.id)}
@@ -56,7 +55,6 @@ export default class Suggestion extends HtmlBaseModel {
         super(data);
 
         this.innerHTML = data.innerHTML ?? '';
-        this.id = data.id ?? '';
         this.suggestionText = data.suggestionText ?? data.textContent ?? '';
     }
 }

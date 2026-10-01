@@ -488,7 +488,7 @@ describe('SelectBox - Options property', () => {
         const options = Array.from(fixture.input.querySelectorAll('option'));
 
         expect(fixture.host.hasOptions).toBe(false);
-        expect(fixture.host.placeholder).toBe(undefined);
+        expect(fixture.host.placeholder).toBe('');
         expect(options.length).toBeGreaterThanOrEqual(1);
         expect(options[0].value).toBe('');
     });

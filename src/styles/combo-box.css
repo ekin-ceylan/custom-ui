@@ -1,4 +1,4 @@
-:is(combo-box, auto-complete) {
+:is(combo-box, auto-complete, look-up) {
     --cbx-bg-color: #e9e9ed;
     --cbx-hover-bg-color: #d0d0d7;
     --cbx-font-family: 'MS Shell Dlg \32', 'Microsoft Sans Serif', sans-serif;
@@ -28,7 +28,7 @@
     --cbx-option-disabled-color: #6e6e6f;
 }
 
-:is(combo-box, auto-complete) > div {
+:is(combo-box, auto-complete, look-up) > div {
     position: relative;
     display: inline-block;
     background-color: var(--cbx-bg-color);
@@ -36,11 +36,11 @@
     font-size: var(--cbx-font-size);
 }
 
-:is(combo-box, auto-complete) > div:hover {
+:is(combo-box, auto-complete, look-up) > div:hover {
     background-color: var(--cbx-hover-bg-color);
 }
 
-:is(combo-box, auto-complete) > div > :is([data-clear], [data-chevron]) {
+:is(combo-box, auto-complete, look-up) > div > :is([data-clear], [data-chevron]) {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -50,7 +50,7 @@
     transition: all 0.2s;
 }
 
-:is(combo-box, auto-complete) > div > [data-clear] {
+:is(combo-box, auto-complete, look-up) > div > [data-clear] {
     color: var(--cbx-clear-color);
     border: none;
     background: none;
@@ -60,27 +60,27 @@
     border-radius: 2px;
 }
 
-:is(combo-box, auto-complete) > div > [data-clear]:not(:disabled) {
+:is(combo-box, auto-complete, look-up) > div > [data-clear]:not(:disabled) {
     cursor: pointer;
 }
 
-:is(combo-box, auto-complete) > div > [data-clear]:not(:disabled):hover {
+:is(combo-box, auto-complete, look-up) > div > [data-clear]:not(:disabled):hover {
     background: var(--cbx-clear-bg-hover);
     color: var(--cbx-clear-hover);
 }
 
-:is(combo-box, auto-complete) > div > [data-clear]:not(:disabled):active {
+:is(combo-box, auto-complete, look-up) > div > [data-clear]:not(:disabled):active {
     background: var(--cbx-clear-bg-active);
     transform: translateY(-50%) scale(0.85);
     color: var(--cbx-clear-active);
 }
 
-:is(combo-box, auto-complete) > div > [data-clear]:disabled {
+:is(combo-box, auto-complete, look-up) > div > [data-clear]:disabled {
     opacity: 0.35;
     pointer-events: none;
 }
 
-:is(combo-box, auto-complete) > div > [data-clear] > svg {
+:is(combo-box, auto-complete, look-up) > div > [data-clear] > svg {
     color: inherit;
     fill: currentColor;
 }
@@ -94,7 +94,7 @@ combo-box > div[data-open] > [data-chevron] {
     transform: translateY(-50%) rotate(180deg);
 }
 
-:is(combo-box, auto-complete) > div > div[role='listbox'][popover] {
+:is(combo-box, auto-complete, look-up) > div > div[role='listbox'][popover] {
     margin: 0;
     position: fixed;
     inset: unset; /* Tarayıcının ortalamasını engelle */
@@ -112,7 +112,7 @@ combo-box > div[data-open] > [data-chevron] {
     overscroll-behavior: contain;
 }
 
-:is(combo-box, auto-complete) > div > div[role='listbox'][popover]::backdrop {
+:is(combo-box, auto-complete, look-up) > div > div[role='listbox'][popover]::backdrop {
     background-color: transparent;
 }
 
@@ -121,12 +121,12 @@ combo-box > div > div[role='listbox']:popover-open {
     /* margin-top: 4px; */
 }
 
-:is(combo-box, auto-complete) > div[data-up] > div[role='listbox'] {
+:is(combo-box, auto-complete, look-up) > div[data-up] > div[role='listbox'] {
     top: auto;
     bottom: 100%;
 }
 
-:is(combo-box, auto-complete) > div > div[role='listbox'] > div:not([hidden]) {
+:is(combo-box, auto-complete, look-up) > div > div[role='listbox'] > div:not([hidden]) {
     display: flex;
     align-items: center;
     padding: 4px;
@@ -141,11 +141,11 @@ combo-box > div > div[role='listbox']:popover-open {
     background: var(--cbx-option-selected-bg-color);
 }
 
-:is(combo-box, auto-complete) > div > div[role='listbox'] > div[data-active] {
+:is(combo-box, auto-complete, look-up) > div > div[role='listbox'] > div[data-active] {
     background: var(--cbx-option-hover-bg-color);
 }
 
-:is(combo-box, auto-complete) > div > div[role='listbox'] > div[aria-disabled] {
+:is(combo-box, auto-complete, look-up) > div > div[role='listbox'] > div[aria-disabled] {
     background: var(--cbx-option-disabled-bg-color);
     color: var(--cbx-option-disabled-color);
     cursor: default;
@@ -153,11 +153,11 @@ combo-box > div > div[role='listbox']:popover-open {
     user-select: none;
 }
 
-:is(combo-box, auto-complete) > div:focus {
+:is(combo-box, auto-complete, look-up) > div:focus {
     outline: solid 2px #4d90fe;
 }
 
-combo-box input[data-role='value'] {
+:is(combo-box, look-up) input[data-role='value'] {
     position: absolute;
     border: none;
     opacity: 0;
@@ -191,7 +191,7 @@ combo-box > div[data-filtered] div[data-role='display'] {
     opacity: 0;
 }
 
-combo-box input[data-role='search'],
+:is(combo-box, look-up) input[data-role='search'],
 auto-complete input[data-role='value'] {
     padding-left: 4px;
     position: relative;

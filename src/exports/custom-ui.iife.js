@@ -4,7 +4,9 @@ export { Directive, directive, PartType } from 'lit/directive.js';
 // Utils
 export { defineComponent, isEmpty, ifDefined } from '../modules/utilities.js';
 export { hideBodyScroll, showBodyScroll, lockAllScrolls, unlockAllScrolls } from '../modules/scroll-lock-helper.js';
-export { lightMixins, mixins } from '../modules/mixin-utils.js';
+export { mixins } from '../modules/mixin-utils.js';
+export { renderMaskPlaceholder } from '../modules/mask-placeholder.js';
+export { generateUniqueId } from '../modules/unique-id-generator.js';
 export { spread } from '../modules/spread.js';
 export { getLocale, setLocale, configure, registerLocale, getMessages, getMessage } from '../i18n/locale.js';
 
@@ -25,9 +27,8 @@ export { default as TextAreaBase } from '../base/text-area-base.js';
 
 // Mixins
 export { default as SlotCollectorMixin } from '../mixins/slot-collector-mixin.js';
-export { default as UniqueIdGeneratorMixin } from '../mixins/unique-id-generator-mixin.js';
 export { default as PropValidatorMixin } from '../mixins/prop-validator-mixin.js';
-export { default as InputMaskMixin } from '../mixins/input-mask-mixin.js';
+export { default as ListboxMixin } from '../mixins/listbox-mixin.js';
 
 // Text input
 export { default as TextBox } from '../components/text-input/text-box.js';
@@ -47,6 +48,7 @@ export { default as SelectBox } from '../components/select/select-box.js';
 export { default as ComboBox } from '../components/select/combo-box.js';
 export { default as RangeSelect } from '../components/select/range-select.js';
 export { default as CheckBox } from '../components/select/check-box.js';
+export { default as Lookup } from '../components/select/lookup.js';
 
 // Dialog
 export { default as ModalDialog } from '../components/dialog/modal-dialog.js';

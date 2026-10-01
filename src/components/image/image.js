@@ -2,7 +2,8 @@ import { html } from 'lit';
 import { ifDefined } from '../../modules/utilities';
 import { spread } from '../../modules/spread';
 import PropValidatorMixin from '../../mixins/prop-validator-mixin';
-import { lightMixins } from '../../modules/mixin-utils';
+import LightComponentBase from '../../base/light-component-base.js';
+import { mixins } from '../../modules/mixin-utils.js';
 
 /**
  * Custom image component that extends LightComponentBase to render an image with enhanced features such as error handling, decorative mode, and accessibility improvements.
@@ -14,7 +15,7 @@ import { lightMixins } from '../../modules/mixin-utils';
  * - Supports responsive images through `srcset` and `sizes` attributes.
  * @example <custom-image src="image.jpg" alt="Description of the image" fallback-text="Image failed to load"></custom-image>
  */
-export default class Image extends lightMixins(PropValidatorMixin) {
+export default class Image extends mixins(LightComponentBase, PropValidatorMixin) {
     static get properties() {
         return {
             src: { type: String },

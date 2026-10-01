@@ -10,13 +10,13 @@ import SlotCollectorMixin from '../../mixins/slot-collector-mixin.js';
 import ListboxMixin from '../../mixins/listbox-mixin.js';
 
 /**
- * Custom combo box component that extends OptionControlBase to provide a searchable dropdown list of options. It supports both native and custom behaviors, allowing for flexible usage in various contexts.
- * - Can be used after defining like `defineElement('combo-box', ComboBox)` or `customElement.define('combo-box', ComboBox)`.
+ * Custom lookup component that extends OptionControlBase to provide a searchable dropdown list of options. It supports both native and custom behaviors, allowing for flexible usage in various contexts.
+ * - Can be used after defining like `defineElement('lookup', Lookup)` or `customElement.define('lookup', Lookup)`.
  * - The `options` property accepts an array of option objects or HTMLOptionElements to populate the dropdown list.
  * - The `value` property reflects the currently selected option's value, and the `selectedOption` property provides the full option object.
  * - The component includes built-in filtering functionality, allowing users to search through options by typing in the input field.
  */
-export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, SlotCollectorMixin) {
+export default class Lookup extends mixins(StandardControlBase, ListboxMixin, SlotCollectorMixin) {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {
@@ -24,9 +24,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
             ...super.properties,
             selectedOption: { type: Object, state: true, attribute: false }, // internal
             filter: { type: String, state: true, attribute: false }, // Filtre metni
-            filterRequired: { type: Boolean, attribute: 'filter-required' }, // Arama yapmadan seçim yapılmasını engeller
             filterThreshold: { type: Number, attribute: 'filter-threshold' }, // Filtrenin başlaması için gereken minimum karakter sayısı
-            nativeBehavior: { type: Boolean, attribute: 'native-behavior' }, // native select gibi davranır
             noOptionsLabel: { type: String, attribute: 'no-options-label' },
         };
     }
@@ -37,6 +35,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
     #selectedOption = null;
     /** @type {Array<object|string>} */
     #options = [];
+    #focused = false;
 
     #cachedInput = undefined;
     #initialValue = undefined;
@@ -47,13 +46,12 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
 
     get filteredOptions() {
         if (!this.filterHasEnoughChars) {
-            if (this.filterRequired) return [];
-            return this.#optionList;
+            return [];
         }
 
         return this.#optionList?.filter(opt => {
-            const searchValue = this.filter?.toLowerCase() || '';
-            const optionText = opt.label.toLowerCase();
+            const searchValue = this.filter?.toLocaleLowerCase(this.lang) || '';
+            const optionText = opt.label.toLocaleLowerCase(this.lang);
 
             return optionText.includes(searchValue);
         });
@@ -71,10 +69,10 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         this.#optionList = this.options.map(this.#toListElement.bind(this));
 
         const opt = findLastBy(this.#optionList, opt => opt.selected);
-        this.#onSelect(opt || null, false);
+        this.#onSelect(opt || null, false, !this.#focused);
 
-        this.requestUpdate();
         if (this.open) this.setListPosition();
+        this.requestUpdate();
     }
 
     get searchId() {
@@ -97,8 +95,6 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         return this.getAttribute('value') || this.#initialValue || '';
     }
 
-    // TODO: options değiştiyse??
-
     // #endregion STATICS, FIELDS, GETTERS
 
     // #region LIFECYCLE METHODS
@@ -113,10 +109,6 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         this.selectedOption = null;
         /** @type {string} */
         this.filter = '';
-        /** @type {Boolean} */
-        this.nativeBehavior = false;
-        /** @type {Boolean} */
-        this.filterRequired = false;
         /** @type {Number} */
         this.filterThreshold = 1;
         /** @type {string} */
@@ -127,12 +119,13 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         super.firstUpdated(changed);
 
         this.searchElement = /** @type {HTMLInputElement} */ (this.renderRoot.querySelector('input[data-role="search"]'));
-        this.displayElement = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[data-role="display"]'));
         this.containerDiv = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[data-role="container"]'));
         this.listboxDiv = /** @type {HTMLDivElement} */ (this.renderRoot.querySelector('div[role="listbox"]'));
         this.clearButton = /** @type {HTMLButtonElement} */ (this.renderRoot.querySelector('button[data-role="clear"]'));
 
-        this.#setInputAndDisplay(this.#selectedOption);
+        // this.#setInputAndDisplay(this.#selectedOption);
+        this.inputElement.value = this.#selectedOption?.value || '';
+        this.filter = this.#selectedOption?.displayText || '';
 
         if (globalThis.getComputedStyle(this.listboxDiv).overscrollBehavior != 'contain') {
             this.listboxDiv.style.overscrollBehavior = 'contain';
@@ -170,6 +163,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
 
         const option = this.#parseOption(node);
         this.#optionList.push(option);
+
         if (option.selected) {
             this.#initialValue = option.value;
             this.#onSelect(option, false);
@@ -195,7 +189,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
 
     /** @override */
     openList() {
-        if (this.filterRequired && !this.filterHasEnoughChars) return;
+        if (!this.filterHasEnoughChars) return;
         super.openList();
         this.activeIndex = this.filteredOptions.indexOf(this.#selectedOption);
         this.scrollToActive(true);
@@ -203,39 +197,32 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
 
     // #region EVENT LISTENERS
 
-    /**
-     * Handles focus out event to close the list.
-     * @param {FocusEvent} e
-     */
-    #onFocusOut(e) {
-        const rt = e.relatedTarget;
-        const isNode = rt instanceof Node || rt instanceof Element;
-
-        if (isNode && this.contains(rt)) return;
-
-        this.#closeListAndValidate();
+    #onBlurSearch(_e) {
+        this.#focused = false;
+        this.filter = this.#selectedOption?.displayText || '';
+        this.#checkValidity(true);
     }
 
-    #onFocusSearch(_e) {
-        this.openList();
-    }
+    // options değişirse value
+    // selected
 
     #onFocusValue(e) {
-        e.target.parentElement.focus();
+        this.searchElement.focus();
     }
 
     #onInputSearch(e) {
         e.stopPropagation();
-        this.dispatchCustomEvent('search', e);
         this.filter = e.target.value;
 
-        if (this.filterRequired) {
-            if (this.filterHasEnoughChars) this.openList();
-            else {
-                this.closeList();
-                return;
-            }
+        if (this.filterHasEnoughChars) {
+            this.dispatchCustomEvent('search', e, { query: this.filter });
+            this.openList();
+        } else {
+            this.closeList();
+            return;
         }
+
+        this.setListPosition();
         this.activeIndex = 0;
         this.scrollToActive();
     }
@@ -246,8 +233,8 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         const keyCode = e.code;
 
         if (keyCode === Keys.ESCAPE) {
-            this.#closeListAndValidate();
-            this.containerDiv.focus();
+            e.preventDefault();
+            this.closeList();
         } else if (!this.open) {
             this.#closedKeyboardBehavior(e, keyCode);
         } else if (this.open) {
@@ -257,11 +244,9 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         // yazmaya başladığımızda arama yapılır
     }
 
-    #onComboboxClick(e) {
-        if (!this.open && !e.target.closest('[role="listbox"]')) {
-            this.openList();
-            this.searchElement.focus();
-        }
+    #onInvalid(_e) {
+        // e.preventDefault(); // mesaj baloncuğu çıkmaz
+        this.#checkValidity(true);
     }
 
     /** @override Clears the current selection. */
@@ -271,19 +256,13 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         this.containerDiv.focus();
     }
 
-    #onInvalid(_e) {
-        // e.preventDefault(); // mesaj baloncuğu çıkmaz
-        this.#checkValidity(true);
-    }
-
     /** @override Handles the click event on an option. */
     onOptionClick(optionId) {
         const option = this.#optionList.find(opt => opt.id === optionId);
         if (!option || option.disabled) return;
 
         this.#onSelect(option);
-        this.#closeListAndValidate();
-        this.containerDiv.focus();
+        this.closeList();
     }
 
     /** @override Handles the hover event on a listbox option. */
@@ -294,11 +273,6 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         this.activeIndex = index;
     }
 
-    /** @override */
-    onRequestClose() {
-        this.#closeListAndValidate();
-    }
-
     // #endregion EVENT LISTENERS
 
     // #region PRIVATE METHODS
@@ -307,30 +281,26 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
      * Handles option selection.
      * @param {ComboOption} selectedOption
      */
-    #onSelect(selectedOption, emitEvents = true) {
-        if (this.#selectedOption === selectedOption) return;
+    #onSelect(selectedOption, emitEvents = true, setFilter = true) {
+        if (this.#selectedOption === selectedOption) {
+            this.inputElement.value = selectedOption?.value || '';
+            if (setFilter) this.filter = this.#selectedOption?.displayText || '';
+            return;
+        }
+
         if (this.#selectedOption) this.#selectedOption.selected = false;
         this.#selectedOption = selectedOption;
 
         if (this.#selectedOption) this.#selectedOption.selected = true;
         this.selectedOption = { value: selectedOption?.value, label: selectedOption?.displayText };
-        this.#setInputAndDisplay(selectedOption);
+        this.inputElement.value = selectedOption?.value || '';
+        if (setFilter) this.filter = this.#selectedOption?.displayText || '';
         this.value = selectedOption?.value ?? '';
 
         if (emitEvents) {
             this.dispatchCustomEvent('input');
             this.dispatchCustomEvent('change');
         }
-    }
-
-    /**
-     * Sets the input value and display content based on the selected option.
-     * @param {ComboOption} selectedOption
-     */
-    #setInputAndDisplay(selectedOption) {
-        if (this.inputElement) this.inputElement.value = selectedOption?.value || '';
-        // this.displayElement.innerHTML = selectedOption?.displayContent || this.placeholder;
-        // this.containerDiv.title = selectedOption?.displayText || '';
     }
 
     /**
@@ -362,52 +332,25 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
             this.scrollToActive();
         } else if (keyCode === Keys.TAB || keyCode === Keys.ENTER) {
             e.preventDefault();
-
-            if (!this.nativeBehavior && keyCode === Keys.ENTER) {
-                this.#selectActiveOption();
-            }
-
-            this.#closeListAndValidate();
-            this.containerDiv.focus();
+            this.#selectActiveOption();
+            this.closeList();
         }
     }
 
     #closedKeyboardBehavior(e, keyCode) {
         const isArrowKey = keyCode === Keys.ARROW_DOWN || keyCode === Keys.ARROW_UP;
 
-        // Seçim yap
-        if (this.nativeBehavior && isArrowKey) {
-            e.preventDefault();
-            const [option, idx] = this.#getAdjacentOption(keyCode === Keys.ARROW_DOWN);
-
-            if (option) {
-                this.activeIndex = idx;
-                this.#onSelect(option);
-            }
-        } else if (keyCode === Keys.SPACE || keyCode === Keys.ENTER) {
+        // Listeyi aç
+        if (isArrowKey) {
             e.preventDefault();
             this.openList();
-            this.searchElement.focus();
+            this.#openKeyboardBehavior(e, keyCode);
         }
     }
 
     #selectActiveOption() {
         const option = this.filteredOptions[this.activeIndex];
         if (option) this.#onSelect(option);
-    }
-
-    /**
-     * Gets the adjacent option based on the current selection.
-     * @param {Boolean} next
-     * @returns {[ComboOption|null, number]} The adjacent option and its index.
-     */
-    #getAdjacentOption(next) {
-        const direction = next ? 1 : -1;
-        let idx = this.filteredOptions.indexOf(this.#selectedOption) + direction;
-        while (this.filteredOptions[idx]?.disabled) idx += direction;
-        const option = this.filteredOptions[idx] || null;
-
-        return [option, idx];
     }
 
     /**
@@ -421,13 +364,6 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         while (this.filteredOptions[idx]?.disabled) idx += direction;
 
         return this.filteredOptions[idx] ? idx : this.activeIndex;
-    }
-
-    #closeListAndValidate() {
-        if (this.nativeBehavior) this.#selectActiveOption();
-        this.closeList();
-        this.filter = '';
-        this.#checkValidity();
     }
 
     /**
@@ -495,14 +431,6 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
     }
 
     /**
-     * Renders the display element that shows the selected option or placeholder.
-     * @returns {import('lit').TemplateResult | typeof nothing}
-     */
-    renderDisplayElement() {
-        return html`<div data-role="display" aria-haspopup="listbox" .innerHTML=${this.#selectedOption?.displayContent || this.placeholder}></div>`;
-    }
-
-    /**
      * Renders the search input field for filtering options.
      * @returns {import('lit').TemplateResult | typeof nothing}
      */
@@ -512,26 +440,30 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
         return html`<input
             id=${this.searchId}
             type="search"
-            .value=${this.filter || ''}
             ?disabled=${this.disabled}
+            .value=${this.filter}
+            .placeholder=${this.placeholder}
             autocomplete="off"
             spellcheck="false"
-            aria-labelledby=${ifDefined(this.labelId)}
             data-role="search"
             role="combobox"
+            aria-labelledby=${ifDefined(this.labelId)}
             aria-activedescendant=${ifDefined(activeDescendantId)}
             aria-controls=${this.listId}
             aria-expanded=${this.open}
-            tabindex=${this.filterRequired ? '0' : '-1'}
-            @focus=${this.#onFocusSearch}
+            @blur=${this.#onBlurSearch}
             @input=${this.#onInputSearch}
+            @focus=${() => (this.#focused = true)}
             @change=${e => e.stopPropagation()}
         />`;
     }
 
-    /** @override Renders the indicator icon for the control, typically a chevron or arrow, indicating that the control can be expanded or collapsed. */
+    /**
+     * @override Renders the indicator icon for the control, typically a chevron or arrow, indicating that the control can be expanded or collapsed.
+     * @returns {import('lit').TemplateResult | typeof nothing}
+     */
     renderIndicator() {
-        return this.filterRequired ? nothing : super.renderIndicator();
+        return nothing;
     }
 
     /**
@@ -539,8 +471,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
      * @returns {import('lit').TemplateResult | typeof nothing}
      */
     renderContainerContent() {
-        return html`${this.renderValueInput()} ${this.renderDisplayElement()} ${this.renderSearchInput()} ${this.renderClearButton()} ${this.renderIndicator()}
-        ${this.renderListBox()}`;
+        return html`${this.renderValueInput()} ${this.renderSearchInput()} ${this.renderClearButton()} ${this.renderIndicator()} ${this.renderListBox()}`;
     }
 
     /**
@@ -570,11 +501,8 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
                 ?data-filtered=${!!this.filter}
                 ?data-has-value=${this.inputElement?.value}
                 ?data-up=${this.directionUp}
-                tabindex=${this.filterRequired ? '-1' : '0'}
-                .title=${ifDefined(this.#selectedOption?.displayText)}
-                @focusout=${this.#onFocusOut}
+                tabindex="-1"
                 @keydown=${this.#onKeydown}
-                @click=${this.#onComboboxClick}
             >
                 ${this.renderContainerContent()}
             </div>

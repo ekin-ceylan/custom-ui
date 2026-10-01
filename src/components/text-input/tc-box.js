@@ -1,21 +1,35 @@
 import { checkTcNo } from '../../modules/utilities.js';
 import TextControlBase from '../../base/text-control-base.js';
-import InputMaskMixin from '../../mixins/input-mask-mixin.js';
-import { mixins } from '../../modules/mixin-utils.js';
+import { renderMaskPlaceholder } from '../../modules/mask-placeholder.js';
 import { html } from 'lit';
 
 /**
  * Turkish Identification Number Input Box Component
+ * @extends {TextControlBase}
  */
-export default class TcBox extends mixins(TextControlBase, InputMaskMixin) {
+export default class TcBox extends TextControlBase {
     static get properties() {
         return {
             ...super.properties,
             autocomplete: { type: String },
+            maskPlaceholder: { type: String, attribute: 'mask-placeholder', noAccessor: true },
         };
     }
 
     #digits = 11;
+    #maskPlaceholder;
+
+    /**
+     * Gets the mask placeholder for the phone input.
+     * If a custom mask placeholder is set, it returns that value; otherwise, it falls back to the input's placeholder.
+     * @returns {string}
+     */
+    get maskPlaceholder() {
+        return this.#maskPlaceholder || this.placeholder;
+    }
+    set maskPlaceholder(value) {
+        this.#maskPlaceholder = value;
+    }
 
     constructor() {
         super();
@@ -26,7 +40,6 @@ export default class TcBox extends mixins(TextControlBase, InputMaskMixin) {
         this.allowPattern = `[0-9]{1,${this.#digits}}`;
         this.pattern = String.raw`\d{${this.#digits}}`;
         this.placeholder = '_'.repeat(this.#digits);
-        this.inputMask = '_'.repeat(this.#digits);
     }
 
     isComplete() {
@@ -47,6 +60,6 @@ export default class TcBox extends mixins(TextControlBase, InputMaskMixin) {
 
     renderContainerContent() {
         const superContent = super.renderContainerContent();
-        return html`${superContent}${this.renderInputMask()}`;
+        return html`${superContent}${renderMaskPlaceholder(this.maskedValue, this.maskPlaceholder)}`;
     }
 }

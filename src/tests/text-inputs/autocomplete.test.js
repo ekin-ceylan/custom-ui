@@ -575,6 +575,72 @@ describe('Autocomplete - Form Integration / Validation', () => {
     });
 });
 
+describe('Autocomplete - Accessibility / Semantics', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    it('AUT-501 associates the label with the input', async () => {
+        const fixture = await initTestFixture('<auto-complete label="City"></auto-complete>');
+        const label = fixture.host.querySelector('label');
+
+        expect(label.htmlFor).toBe(fixture.input.id);
+        expect(fixture.input.getAttribute('aria-labelledby')).toBe(label.id);
+    });
+
+    it('AUT-502 exposes combobox state and controls its listbox', async () => {
+        const fixture = await initTestFixture('<auto-complete label="City"></auto-complete>');
+        const combobox = fixture.host.querySelector('[role="combobox"]');
+        const listbox = fixture.host.querySelector('[role="listbox"]');
+
+        expect(combobox.getAttribute('aria-controls')).toBe(listbox.id);
+        expect(combobox.getAttribute('aria-expanded')).toBe('false');
+        expect(listbox.getAttribute('role')).toBe('listbox');
+
+        fixture.host.options = ['Ankara'];
+        await fixture.host.updateComplete;
+        await fixture.user.type(fixture.input, 'a');
+        await fixture.host.updateComplete;
+
+        expect(combobox.getAttribute('aria-expanded')).toBe('true');
+        expect(listbox.querySelector('[role="option"]')).not.toBeNull();
+    });
+
+    it('AUT-503 exposes the active suggestion through aria-activedescendant', async () => {
+        const fixture = await initTestFixture('<auto-complete label="City"></auto-complete>');
+        fixture.host.options = ['Ankara', 'Adana'];
+        await fixture.host.updateComplete;
+
+        await fixture.user.type(fixture.input, 'a');
+        await fixture.host.updateComplete;
+
+        const combobox = fixture.host.querySelector('[role="combobox"]');
+        const activeOption = fixture.host.querySelector('[role="option"][data-active]');
+        expect(combobox.getAttribute('aria-activedescendant')).toBe(activeOption.id);
+    });
+
+    it('AUT-504 reflects the disabled state on the input and combobox', async () => {
+        const fixture = await initTestFixture('<auto-complete label="City" disabled></auto-complete>');
+        const combobox = fixture.host.querySelector('[role="combobox"]');
+
+        expect(fixture.input.disabled).toBe(true);
+        expect(combobox.getAttribute('aria-disabled')).toBe('true');
+    });
+
+    it('AUT-505 associates the validation message with an invalid input', async () => {
+        const fixture = await initTestFixture('<auto-complete label="City" required></auto-complete>');
+
+        expect(fixture.host.checkValidity()).toBe(false);
+        await fixture.host.updateComplete;
+
+        const errorMessage = fixture.host.querySelector('[data-role="error-message"]');
+        expect(fixture.input.getAttribute('aria-invalid')).toBe('true');
+        expect(fixture.input.getAttribute('aria-errormessage')).toBe(errorMessage.id);
+        expect(errorMessage.getAttribute('aria-live')).toBe('assertive');
+        expect(errorMessage.textContent).not.toBe('');
+    });
+});
+
 /*
 # Autocomplete Case Planı
 
@@ -632,11 +698,11 @@ describe('Autocomplete - Form Integration / Validation', () => {
 
 ## 5. Accessibility / Semantics
 
-* [ ] AUT-501 — Label input ile doğru ilişkilendirilir.
+* [x] AUT-501 — Label input ile doğru ilişkilendirilir.
 * [ ] AUT-502 — Combobox ve listbox ARIA semantiği doğru kurulur.
-* [ ] AUT-503 — Aktif öneri aria-activedescendant ile duyurulur.
-* [ ] AUT-504 — Disabled state input ve ARIA üzerinde doğru yansıtılır.
-* [ ] AUT-505 — Validation mesajı ve aria-invalid doğru ilişkilendirilir.
+* [x] AUT-503 — Aktif öneri aria-activedescendant ile duyurulur.
+* [x] AUT-504 — Disabled state input ve ARIA üzerinde doğru yansıtılır.
+* [x] AUT-505 — Validation mesajı ve aria-invalid doğru ilişkilendirilir.
 
 ## 6. Edge Cases / Lifecycle
 

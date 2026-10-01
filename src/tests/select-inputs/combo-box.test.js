@@ -13,13 +13,13 @@ defineElement('combo-box', ComboBox);
 async function initComboBox(elementStr) {
     const fixture = await initTestFixture(elementStr);
 
-    Object.defineProperty(fixture, 'comboboxDiv', { get: () => fixture.host.querySelector('div[role="combobox"]') });
+    Object.defineProperty(fixture, 'containerDiv', { get: () => fixture.host.querySelector('div[data-role="container"]') });
     Object.defineProperty(fixture, 'searchInput', { get: () => fixture.host.querySelector('input[data-role="search"]') });
     Object.defineProperty(fixture, 'display', { get: () => fixture.host.querySelector('div[data-role="display"]') });
     Object.defineProperty(fixture, 'listbox', { get: () => fixture.host.querySelector('div[role="listbox"]') });
     Object.defineProperty(fixture, 'clearButton', { get: () => fixture.host.querySelector('button[data-clear]') });
 
-    if (!fixture.comboboxDiv || !fixture.searchInput || !fixture.display || !fixture.listbox) {
+    if (!fixture.containerDiv || !fixture.searchInput || !fixture.display || !fixture.listbox) {
         throw new Error('combo-box internals not found');
     }
 
@@ -31,7 +31,7 @@ function getOptionDivs(fixture) {
 }
 
 async function openList(fixture) {
-    fixture.comboboxDiv.focus();
+    fixture.containerDiv.focus();
     await fixture.user.keyboard('{Enter}');
     await fixture.host.updateComplete;
 }
@@ -105,7 +105,7 @@ describe('ComboBox - Options & selection', () => {
 
     it('opens with keyboard and selects active option with Enter', async () => {
         const fixture = await initComboBox(`
-			<combo-box field-id="city" label="City" placeholder="Pick">
+			<combo-box label="City" placeholder="Pick">
 				<option value="a">Ankara</option>
 				<option value="i">Istanbul</option>
 			</combo-box>
@@ -116,7 +116,7 @@ describe('ComboBox - Options & selection', () => {
 
         await openList(fixture);
         expect(fixture.host.open).toBe(true);
-        expect(fixture.comboboxDiv.dataset.open).not.toBeUndefined();
+        expect(fixture.containerDiv.dataset.open).not.toBeUndefined();
 
         await fixture.user.keyboard('{ArrowDown}');
         await fixture.host.updateComplete;
@@ -151,7 +151,7 @@ describe('ComboBox - Options & selection', () => {
     });
 
     it('selects option when clicking nested element inside option (delegated click)', async () => {
-        const fixture = await initComboBox('<combo-box field-id="city" label="City" placeholder="Pick"></combo-box>');
+        const fixture = await initComboBox('<combo-box label="City" placeholder="Pick"></combo-box>');
 
         fixture.host.options = [
             { value: 'ank', innerHTML: '<span data-part="label">Ankara</span>' },
@@ -203,7 +203,7 @@ describe('ComboBox - Options & selection', () => {
         await fixture.host.updateComplete;
 
         expect(fixture.host.activeIndex).toBe(1);
-        expect(fixture.comboboxDiv.getAttribute('aria-activedescendant')).toBe(optionDivs[1].id);
+        expect(fixture.searchInput.getAttribute('aria-activedescendant')).toBe(optionDivs[1].id);
     });
 });
 
@@ -225,7 +225,7 @@ describe('ComboBox - Popover behavior', () => {
         expect(fixture.host.open).toBe(false);
         expect(fixture.listbox.matches(':popover-open')).toBe(false);
         expect(fixture.host.activeIndex).toBe(-1);
-        expect(document.activeElement).toBe(fixture.comboboxDiv);
+        expect(document.activeElement).toBe(fixture.containerDiv);
     });
 
     it('closes on an outside pointer interaction but stays open for an inside interaction', async () => {
@@ -250,7 +250,7 @@ describe('ComboBox - Popover behavior', () => {
 
     it.each(['scroll', 'resize'])('closes when the viewport is invalidated by %s', async eventType => {
         const fixture = await initComboBox(`
-            <combo-box field-id="city" label="City" placeholder="Pick">
+            <combo-box label="City" placeholder="Pick">
                 <option value="a">Ankara</option>
             </combo-box>
         `);
@@ -325,7 +325,7 @@ describe('ComboBox - Popover behavior', () => {
             </combo-box>
         `);
         vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(viewportHeight);
-        vi.spyOn(fixture.comboboxDiv, 'getBoundingClientRect').mockReturnValue({ ...rect, height: rect.bottom - rect.top, right: rect.x + rect.width, y: rect.top, toJSON() {} });
+        vi.spyOn(fixture.containerDiv, 'getBoundingClientRect').mockReturnValue({ ...rect, height: rect.bottom - rect.top, right: rect.x + rect.width, y: rect.top, toJSON() {} });
         vi.spyOn(fixture.listbox, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 0, height: 0, width: 0, x: 0, y: 0, right: 0, left: 0, toJSON() {} });
         fixture.listbox.style.maxHeight = '1000px';
         Object.defineProperty(fixture.listbox, 'scrollHeight', { configurable: true, value: scrollHeight });
@@ -393,12 +393,12 @@ describe('ComboBox - Extended interaction behavior', () => {
         await secondHost.updateComplete;
         const second = {
             host: secondHost,
-            comboboxDiv: secondHost.querySelector('div[role="combobox"]'),
+            containerDiv: secondHost.querySelector('div[data-role="container"]'),
             user: first.user,
         };
 
         await openList(first);
-        second.comboboxDiv.focus();
+        second.containerDiv.focus();
         await second.user.keyboard('{Enter}');
         await second.host.updateComplete;
 
@@ -534,11 +534,11 @@ describe('ComboBox - Required validation', () => {
     it('keeps focus on the combobox when invalid validation is triggered', async () => {
         const fixture = await initComboBox('<combo-box label="Team" required placeholder="Pick"></combo-box>');
 
-        fixture.comboboxDiv.focus();
+        fixture.containerDiv.focus();
         fixture.input.dispatchEvent(new Event('invalid', { bubbles: false, cancelable: true }));
         await fixture.host.updateComplete;
 
-        expect(document.activeElement).toBe(fixture.comboboxDiv);
+        expect(document.activeElement).toBe(fixture.containerDiv);
         expect(fixture.input.getAttribute('aria-invalid')).toBe('true');
     });
 
@@ -571,6 +571,22 @@ describe('ComboBox - Required validation', () => {
 });
 
 describe('ComboBox - Options property', () => {
+    it('clears the selected value when options no longer contain it', async () => {
+        const fixture = await initComboBox(`
+            <combo-box field-id="city" label="City" value="a" placeholder="Pick a city">
+                <option value="a">Ankara</option>
+                <option value="i">Istanbul</option>
+            </combo-box>
+        `);
+
+        fixture.host.options = [{ value: 'i', label: 'Istanbul' }];
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+        expect(fixture.display.textContent).toContain('Pick a city');
+    });
+
     it('accepts options array and renders them', async () => {
         const fixture = await initComboBox('<combo-box field-id="x" label="X" placeholder="Pick"></combo-box>');
 
@@ -652,7 +668,7 @@ describe('ComboBox - Filter-required and filter-threshold', () => {
         ];
         await fixture.host.updateComplete;
 
-        fixture.comboboxDiv.focus();
+        fixture.containerDiv.focus();
         await fixture.user.keyboard('{Enter}');
         await fixture.host.updateComplete;
 
@@ -770,9 +786,19 @@ describe('ComboBox - Event emission control (programmatic vs user-driven)', () =
         expect(fixture.host.value).toBe('b');
     });
 
+    it('clears an unmatched external value when no option is selected', async () => {
+        const fixture = await initComboBox('<combo-box id="x" label="X"><option value="a">A</option></combo-box>');
+
+        fixture.host.value = 'unknown';
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+    });
+
     it('does not emit input/change when slotted option with selected is parsed', async () => {
         const fixture = await initComboBox(`
-            <combo-box field-id="x" label="X" placeholder="Pick">
+            <combo-box id="x" label="X" placeholder="Pick">
                 <option value="a" selected>A</option>
                 <option value="b">B</option>
             </combo-box>
@@ -791,7 +817,7 @@ describe('ComboBox - Event emission control (programmatic vs user-driven)', () =
 
     it('emits input/change when user clicks to select an option', async () => {
         const fixture = await initComboBox(`
-            <combo-box field-id="x" label="X" placeholder="Pick">
+            <combo-box id="x" label="X" placeholder="Pick">
                 <option value="a">A</option>
                 <option value="b">B</option>
             </combo-box>
@@ -874,7 +900,7 @@ describe('ComboBox - Event emission control (programmatic vs user-driven)', () =
         fixture.host.addEventListener('input', inputSpy);
         fixture.host.addEventListener('change', changeSpy);
 
-        fixture.comboboxDiv.focus();
+        fixture.containerDiv.focus();
         await fixture.user.keyboard('{ArrowDown}');
         await fixture.host.updateComplete;
 
@@ -914,6 +940,7 @@ describe('ComboBox - Reset', () => {
 
         if (resetType === 'component') {
             fixture.host.reset();
+            await fixture.host.updateComplete;
             await fixture.host.updateComplete;
         } else {
             await fixture.user.click(fixture.reset);

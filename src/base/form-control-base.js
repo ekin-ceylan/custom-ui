@@ -1,8 +1,9 @@
 import { html, nothing } from 'lit';
 import PropValidatorMixin from '../mixins/prop-validator-mixin.js';
-import UniqueIdGeneratorMixin from '../mixins/unique-id-generator-mixin.js';
-import { lightMixins } from '../modules/mixin-utils.js';
+import { mixins } from '../modules/mixin-utils.js';
 import { ifDefined } from '../modules/utilities.js';
+import LightComponentBase from '../base/light-component-base.js';
+import { generateUniqueId } from '../modules/unique-id-generator.js';
 
 /**
  * Base class for form control components providing common functionality for form inputs and selects.
@@ -14,9 +15,8 @@ import { ifDefined } from '../modules/utilities.js';
  * @template {string | boolean | number}  [TValue=string]
  * @abstract Not intended to be used directly in component definitions (for example, with customElements.define). Extend this class to create concrete components.
  * @mixes PropValidatorMixin - Provides required and warning field validation logic. Components can specify required fields that must be set and warning fields that trigger console warnings when empty.
- * @mixes UniqueIdGeneratorMixin - Provides a unique ID generator for creating stable, minify-safe component identifiers.
  */
-export default class FormControlBase extends lightMixins(PropValidatorMixin, UniqueIdGeneratorMixin) {
+export default class FormControlBase extends mixins(LightComponentBase, PropValidatorMixin) {
     // #region STATICS, FIELDS, GETTERS
 
     /** @type {import('lit').PropertyDeclarations} */
@@ -33,9 +33,18 @@ export default class FormControlBase extends lightMixins(PropValidatorMixin, Uni
         };
     }
 
+    #uniqueId = generateUniqueId();
     #interacted = false;
     /** @type {string | null } */
     validationMessage = '';
+
+    /**
+     * Gets the unique ID of the component.
+     * @returns {string}
+     */
+    get uniqueId() {
+        return this.#uniqueId;
+    }
 
     /**
      * This is used to reset the form control to its initial state when the form is reset.

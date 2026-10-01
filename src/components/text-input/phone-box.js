@@ -1,23 +1,38 @@
 import { isEmpty } from '../../modules/utilities.js';
-import { mixins } from '../../modules/mixin-utils.js';
-import InputMaskMixin from '../../mixins/input-mask-mixin.js';
+import { renderMaskPlaceholder } from '../../modules/mask-placeholder.js';
 import TextControlBase from '../../base/text-control-base.js';
 import { html } from 'lit';
 
 /**
  * Input component that provides phone number format validation and masking.
  *
- * The `PhoneBox` component extends `TextControlBase` and incorporates the `InputMaskMixin` to provide a user-friendly interface for entering phone numbers.
+ * The `PhoneBox` component extends `TextControlBase` and incorporates the `renderMaskPlaceholder` util to provide a user-friendly interface for entering phone numbers.
  * It automatically formats the input as the user types, ensuring that the phone number adheres to a specific pattern.
+ * @extends {TextControlBase}
  */
-export default class PhoneBox extends mixins(TextControlBase, InputMaskMixin) {
+export default class PhoneBox extends TextControlBase {
     static get properties() {
         return {
             ...super.properties,
             // maxlength: { type: Number },
             // minlength: { type: Number },
             autounmask: { type: Boolean },
+            maskPlaceholder: { type: String, attribute: 'mask-placeholder', noAccessor: true },
         };
+    }
+
+    #maskPlaceholder;
+
+    /**
+     * Gets the mask placeholder for the phone input.
+     * If a custom mask placeholder is set, it returns that value; otherwise, it falls back to the input's placeholder.
+     * @returns {string}
+     */
+    get maskPlaceholder() {
+        return this.#maskPlaceholder || this.placeholder;
+    }
+    set maskPlaceholder(value) {
+        this.#maskPlaceholder = value;
     }
 
     constructor() {
@@ -83,7 +98,7 @@ export default class PhoneBox extends mixins(TextControlBase, InputMaskMixin) {
 
     renderContainerContent() {
         const superContent = super.renderContainerContent();
-        return html`${superContent}${this.renderInputMask()}`;
+        return html`${superContent}${renderMaskPlaceholder(this.maskedValue, this.maskPlaceholder)}`;
     }
 }
 
