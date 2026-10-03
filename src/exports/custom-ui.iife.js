@@ -5,7 +5,6 @@ export { Directive, directive, PartType } from 'lit/directive.js';
 export { defineComponent, isEmpty, ifDefined } from '../modules/utilities.js';
 export { hideBodyScroll, showBodyScroll, lockAllScrolls, unlockAllScrolls } from '../modules/scroll-lock-helper.js';
 export { mixins } from '../modules/mixin-utils.js';
-export { renderMaskPlaceholder } from '../modules/mask-placeholder.js';
 export { generateUniqueId } from '../modules/unique-id-generator.js';
 export { spread } from '../modules/spread.js';
 export { getLocale, setLocale, configure, registerLocale, getMessages, getMessage } from '../i18n/locale.js';
@@ -29,6 +28,7 @@ export { default as TextAreaBase } from '../base/text-area-base.js';
 export { default as SlotCollectorMixin } from '../mixins/slot-collector-mixin.js';
 export { default as PropValidatorMixin } from '../mixins/prop-validator-mixin.js';
 export { default as ListboxMixin } from '../mixins/listbox-mixin.js';
+export { default as MaskPlaceholderMixin } from '../mixins/mask-placeholder-mixin.js';
 
 // Text input
 export { default as TextBox } from '../components/text-input/text-box.js';

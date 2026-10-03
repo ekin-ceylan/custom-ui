@@ -1,6 +1,6 @@
 import { isEmpty } from '../../../src/modules/utilities.js';
 import { html } from 'lit';
-import { defineComponent, LightComponentBase, TextControlBase, InputMaskMixin, mixins } from '../../../src/exports/custom-ui.js';
+import { defineComponent, LightComponentBase, TextControlBase, MaskPlaceholderMixin, mixins } from '../../../src/exports/custom-ui.js';
 
 export default class PhoneNational extends LightComponentBase {
     static get properties() {
@@ -31,7 +31,7 @@ export default class PhoneNational extends LightComponentBase {
     }
 }
 
-export class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
+export class PhoneIntl extends mixins(TextControlBase, MaskPlaceholderMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -112,8 +112,9 @@ export class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
     }
 
     renderContainerContent() {
+        const maskPlaceholder = this.placeholder.replace(/\d/g, '_');
         const superContent = super.renderContainerContent();
-        return html`${superContent}${this.renderInputMask()}`;
+        return html`${superContent}${this.renderMaskPlaceholder(this.maskedValue, maskPlaceholder)}`;
     }
 }
 

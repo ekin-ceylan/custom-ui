@@ -14,7 +14,7 @@ import * as PhoneboxStories from './phone-box.stories.js';
 <Canvas of={PhoneboxStories.IntlStory_1} />
 
 ```js
-class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
+class PhoneIntl extends mixins(TextControlBase, MaskPlaceholderMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -87,6 +87,11 @@ class PhoneIntl extends mixins(TextControlBase, InputMaskMixin) {
         this.pattern = country?.pattern;
         this.placeholder = country?.placeholder;
         this.requestUpdate('pattern');
+    }
+
+    renderContainerContent() {
+        const superContent = super.renderContainerContent();
+        return html`${superContent}${this.renderMaskPlaceholder(this.maskedValue, this.placeholder)}`;
     }
 }
 ```
@@ -162,9 +167,9 @@ class PhoneIntl2 extends PhoneIntl {
         return nothing;
     }
 
-    renderInputMaskContent() {
+    renderMaskPlaceholderContent() {
         // prettier-ignore
-        return html`<pre>+${this.selectedCountry?.code}</pre>${super.renderInputMaskContent()}`;
+        return html`<pre>+${this.selectedCountry?.code}</pre>${super.renderMaskPlaceholderContent()}`;
     }
 }
 

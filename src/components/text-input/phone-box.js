@@ -1,16 +1,16 @@
 import { isEmpty } from '../../modules/utilities.js';
-import { renderMaskPlaceholder } from '../../modules/mask-placeholder.js';
 import TextControlBase from '../../base/text-control-base.js';
 import { html } from 'lit';
+import { mixins } from '../../modules/mixin-utils.js';
+import MaskPlaceholderMixin from '../../mixins/mask-placeholder-mixin.js';
 
 /**
  * Input component that provides phone number format validation and masking.
  *
  * The `PhoneBox` component extends `TextControlBase` and incorporates the `renderMaskPlaceholder` util to provide a user-friendly interface for entering phone numbers.
  * It automatically formats the input as the user types, ensuring that the phone number adheres to a specific pattern.
- * @extends {TextControlBase}
  */
-export default class PhoneBox extends TextControlBase {
+export default class PhoneBox extends mixins(TextControlBase, MaskPlaceholderMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -98,7 +98,7 @@ export default class PhoneBox extends TextControlBase {
 
     renderContainerContent() {
         const superContent = super.renderContainerContent();
-        return html`${superContent}${renderMaskPlaceholder(this.maskedValue, this.maskPlaceholder)}`;
+        return html`${superContent}${this.renderMaskPlaceholder(this.maskedValue, this.maskPlaceholder)}`;
     }
 }
 

@@ -7,10 +7,10 @@ import SuggestionOption from '../parts/suggestion-option.js';
 import Keys from '../../enums/Keys.js';
 import { ifDefined } from '../../modules/utilities.js';
 import { mixins } from '../../modules/mixin-utils.js';
-import { renderMaskPlaceholder } from '../../modules/mask-placeholder.js';
 import { generateUniqueId } from '../../modules/unique-id-generator.js';
+import MaskPlaceholderMixin from '../../mixins/mask-placeholder-mixin.js';
 
-export default class Autocomplete extends mixins(TextControlBase, SlotCollectorMixin, ListboxMixin) {
+export default class Autocomplete extends mixins(TextControlBase, SlotCollectorMixin, ListboxMixin, MaskPlaceholderMixin) {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {
@@ -300,7 +300,7 @@ export default class Autocomplete extends mixins(TextControlBase, SlotCollectorM
      */
     renderContainerContent() {
         const superContent = super.renderContainerContent();
-        return html`${superContent}${this.renderListBox()}${renderMaskPlaceholder(this.value, this.inputMask)}`;
+        return html`${superContent}${this.renderListBox()}${this.renderMaskPlaceholder(this.value, this.inputMask)}`;
     }
 
     /**

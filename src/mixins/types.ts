@@ -97,3 +97,34 @@ export interface Listbox {
     /** Renders the listbox and its items. */
     renderListBox(): import('lit').TemplateResult | typeof nothing;
 }
+
+export interface MaskPlaceholder {
+    /**
+     * Renders the entered-value prefix and unmatched mask suffix.
+     * Override to customize the underlay content while retaining its wrapper.
+     * @example
+     * renderMaskPlaceholderContent(currentValue, remainingPlaceholder) {
+     *   return html`<pre>+${this.countryCode}</pre>
+     *     ${super.renderMaskPlaceholderContent(currentValue, remainingPlaceholder)}`;
+     * }
+     * @param currentValue The portion of the value already entered.
+     * @param remainingPlaceholder The mask suffix after the entered value.
+     * @protected
+     */
+    renderMaskPlaceholderContent(currentValue: string, remainingPlaceholder: string): import('lit').TemplateResult | typeof nothing;
+
+    /**
+     * Renders the mask as an aria-hidden underlay. Call from a component render
+     * method; it is not added to the render output automatically. Nullish inputs
+     * become empty strings, and the component's placeholder property is not read.
+     * @example
+     * renderContainerContent() {
+     *   const content = super.renderContainerContent();
+     *   return html`${content}${this.renderMaskPlaceholder(this.value, this.placeholder)}`;
+     * }
+     * @param value The current input value.
+     * @param placeholder The mask pattern.
+     * @protected
+     */
+    renderMaskPlaceholder(value: string, placeholder: string): import('lit').TemplateResult | typeof nothing;
+}

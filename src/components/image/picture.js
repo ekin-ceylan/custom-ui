@@ -7,10 +7,11 @@
 
 import { html } from 'lit';
 import SlotCollectorMixin from '../../mixins/slot-collector-mixin';
-import { lightMixins } from '../../modules/mixin-utils';
+import { mixins } from '../../modules/mixin-utils';
+import LightComponentBase from '../../base/light-component-base.js';
 
 // bg-image - ayrı comp olabilir
-export default class Picture extends lightMixins(SlotCollectorMixin) {
+export default class Picture extends mixins(LightComponentBase, SlotCollectorMixin) {
     render() {
         return html`
             <picture>

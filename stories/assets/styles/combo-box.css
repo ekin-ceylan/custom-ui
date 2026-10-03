@@ -81,21 +81,21 @@
     color: var(--cbx-text-color);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] {
+:is(combo-box, .combo-box) > div[data-role='container'] {
     position: relative;
     background: var(--cbx-bg-color); /* transparent; */
     font-size: var(--cbx-font-size);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox']:hover {
+:is(combo-box, .combo-box) > div[data-role='container']:hover {
     background: var(--cbx-bg-color-hover);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox']:focus {
+:is(combo-box, .combo-box) > div[data-role='container']:focus {
     outline: var(--cbx-outline-width) solid var(--cbx-outline-color);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > input[data-role='value'] {
+:is(combo-box, .combo-box) > div[data-role='container'] > input[data-role='value'] {
     position: absolute;
     border: none;
     opacity: 0;
@@ -105,7 +105,7 @@
     bottom: 0;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[data-role='display'] {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[data-role='display'] {
     position: absolute;
     display: flex;
     align-items: center;
@@ -118,23 +118,23 @@
     color: var(--cbx-placeholder-color);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox']:focus > div[data-role='display'] {
+:is(combo-box, .combo-box) > div[data-role='container']:focus > div[data-role='display'] {
     color: var(--cbx-placeholder-color-focus);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][data-has-value] > div[data-role='display'] {
+:is(combo-box, .combo-box) > div[data-role='container'][data-has-value] > div[data-role='display'] {
     color: inherit;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][data-open] > div[data-role='display'] {
+:is(combo-box, .combo-box) > div[data-role='container'][data-open] > div[data-role='display'] {
     opacity: 0.5;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][data-filtered] > div[data-role='display'] {
+:is(combo-box, .combo-box) > div[data-role='container'][data-filtered] > div[data-role='display'] {
     opacity: 0;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] input[data-role='search'] {
+:is(combo-box, .combo-box) > div[data-role='container'] input[data-role='search'] {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -163,46 +163,46 @@
         background-color 0.15s ease;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] input[data-role='search']:hover {
+:is(combo-box, .combo-box) > div[data-role='container'] input[data-role='search']:hover {
     border-color: var(--cbx-border-color-hover);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] input[data-role='search']:focus-visible {
+:is(combo-box, .combo-box) > div[data-role='container'] input[data-role='search']:focus-visible {
     border-color: var(--cbx-border-color-focus);
     box-shadow: var(--cbx-focus-ring);
     outline: var(--cbx-outline-width) solid var(--cbx-outline-color);
     outline-offset: var(--cbx-outline-offset);
 }
 
-:is(combo-box, .combo-box):has(> div[role='combobox'][aria-disabled='true']) > label {
+:is(combo-box, .combo-box):has(> div[data-role='container'][aria-disabled='true']) > label {
     color: var(--cbx-text-color-disabled);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][aria-disabled='true'] {
+:is(combo-box, .combo-box) > div[data-role='container'][aria-disabled='true'] {
     background: var(--cbx-bg-color-disabled);
     pointer-events: none;
     opacity: 0.7;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][aria-disabled='true'] > input[data-role='search'] {
+:is(combo-box, .combo-box) > div[data-role='container'][aria-disabled='true'] > input[data-role='search'] {
     border-color: var(--cbx-border-color-disabled);
     color: var(--cbx-text-color-disabled);
     box-shadow: none;
     cursor: not-allowed;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox']:has(> input[data-role='value'][aria-invalid='true']):focus,
-:is(combo-box, .combo-box) > div[role='combobox']:has(> input[data-role='value'][aria-invalid='true']):focus-visible {
+:is(combo-box, .combo-box) > div[data-role='container']:has(> input[data-role='value'][aria-invalid='true']):focus,
+:is(combo-box, .combo-box) > div[data-role='container']:has(> input[data-role='value'][aria-invalid='true']):focus-visible {
     outline-color: var(--cbx-outline-color-invalid);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > input[data-role='value'][aria-invalid='true'] ~ input[data-role='search'] {
+:is(combo-box, .combo-box) > div[data-role='container'] > input[data-role='value'][aria-invalid='true'] ~ input[data-role='search'] {
     border-color: var(--cbx-border-color-invalid);
     outline-color: var(--cbx-outline-color-invalid);
     box-shadow: var(--cbx-focus-ring-invalid);
 }
 
-:is(combo-box, .combo-box):has(> div[role='combobox'] > input[data-role='value'][aria-invalid='true']) > [data-role='error-message'] {
+:is(combo-box, .combo-box):has(> div[data-role='container'] > input[data-role='value'][aria-invalid='true']) > [data-role='error-message'] {
     color: var(--cbx-text-color-invalid);
     margin-top: 4px;
     font-size: 13px;
@@ -211,7 +211,7 @@
 
 /* #region LISTBOX */
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox'][popover] {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox'][popover] {
     margin: 0;
     position: fixed;
     inset: unset; /* Tarayıcının ortalamasını engelle */
@@ -230,21 +230,21 @@
     box-sizing: border-box;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox'][popover]::backdrop {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox'][popover]::backdrop {
     background-color: transparent;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox']:popover-open {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox']:popover-open {
     /* display: block; */
     /* margin-top: 4px; */
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][data-up] > div[role='listbox'] {
+:is(combo-box, .combo-box) > div[data-role='container'][data-up] > div[role='listbox'] {
     /* top: auto;
     bottom: 100%; */
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox'] > div:not([hidden]) {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox'] > div:not([hidden]) {
     display: flex;
     align-items: center;
     padding: var(--cbx-option-padding);
@@ -255,17 +255,17 @@
     box-sizing: border-box;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox'] > div[data-active] {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox'] > div[data-active] {
     background: var(--cbx-option-bg-color-hover);
     color: var(--cbx-option-color-selected);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox'] > div[aria-selected] {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox'] > div[aria-selected] {
     background: var(--cbx-option-bg-color-selected);
     color: var(--cbx-option-color-selected);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > div[role='listbox'] > div[aria-disabled] {
+:is(combo-box, .combo-box) > div[data-role='container'] > div[role='listbox'] > div[aria-disabled] {
     background: var(--cbx-option-bg-color-disabled);
     color: var(--cbx-option-color-disabled);
     cursor: default;
@@ -277,14 +277,14 @@
 
 /* #region CLEAR & CHEVRON */
 
-:is(combo-box, .combo-box) > div[role='combobox'] > :is([data-clear], [data-chevron]) {
+:is(combo-box, .combo-box) > div[data-role='container'] > :is([data-clear], [data-chevron]) {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
     transition: all 0.2s;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-clear] {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-clear] {
     right: var(--cbx-clear-right-distance);
     width: var(--cbx-clear-size);
     height: var(--cbx-clear-size);
@@ -299,32 +299,32 @@
     line-height: 0px;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-clear]:hover {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-clear]:hover {
     background: var(--cbx-clear-bg-color-hover);
     color: var(--cbx-clear-color-hover);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-clear]:focus-visible {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-clear]:focus-visible {
     outline-style: var(--cbx-clear-outline-style);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-clear]:active {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-clear]:active {
     background: var(--cbx-clear-bg-color-active);
     transform: translateY(-50%) scale(0.85);
     color: var(--cbx-clear-color-active);
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-clear]:disabled {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-clear]:disabled {
     opacity: 0.35;
     pointer-events: none;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-clear] > svg {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-clear] > svg {
     color: inherit;
     fill: currentColor;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'] > [data-chevron] {
+:is(combo-box, .combo-box) > div[data-role='container'] > [data-chevron] {
     right: var(--cbx-chevron-right-distance);
     width: var(--cbx-chevron-size);
     height: var(--cbx-chevron-size);
@@ -333,7 +333,7 @@
     opacity: 0.85;
 }
 
-:is(combo-box, .combo-box) > div[role='combobox'][data-open] > [data-chevron] {
+:is(combo-box, .combo-box) > div[data-role='container'][data-open] > [data-chevron] {
     transform: translateY(-50%) rotate(180deg);
 }
 

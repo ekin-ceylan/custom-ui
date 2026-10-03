@@ -1,13 +1,13 @@
+import { html } from 'lit';
 import { checkTcNo } from '../../modules/utilities.js';
 import TextControlBase from '../../base/text-control-base.js';
-import { renderMaskPlaceholder } from '../../modules/mask-placeholder.js';
-import { html } from 'lit';
+import { mixins } from '../../modules/mixin-utils.js';
+import MaskPlaceholderMixin from '../../mixins/mask-placeholder-mixin.js';
 
 /**
  * Turkish Identification Number Input Box Component
- * @extends {TextControlBase}
  */
-export default class TcBox extends TextControlBase {
+export default class TcBox extends mixins(TextControlBase, MaskPlaceholderMixin) {
     static get properties() {
         return {
             ...super.properties,
@@ -60,6 +60,6 @@ export default class TcBox extends TextControlBase {
 
     renderContainerContent() {
         const superContent = super.renderContainerContent();
-        return html`${superContent}${renderMaskPlaceholder(this.maskedValue, this.maskPlaceholder)}`;
+        return html`${superContent}${this.renderMaskPlaceholder(this.maskedValue, this.maskPlaceholder)}`;
     }
 }

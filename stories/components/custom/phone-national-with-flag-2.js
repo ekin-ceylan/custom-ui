@@ -1,11 +1,11 @@
 import { defineComponent, ifDefined } from '../../../src/modules/utilities.js';
 import { CustomCombobox } from './custom-combobox.js';
 import { html, nothing } from 'lit';
-import UniqueIdGeneratorMixin from '../../../src/mixins/unique-id-generator-mixin.js';
-import { mixins, LightComponentBase } from '../../../src/exports/custom-ui.js';
+import { LightComponentBase } from '../../../src/exports/custom-ui.js';
 import { PhoneIntl } from './phone-national-with-flag.js';
+import { generateUniqueId } from '../../../dist/custom-ui.js';
 
-export default class PhoneNational2 extends mixins(LightComponentBase, UniqueIdGeneratorMixin) {
+export default class PhoneNational2 extends LightComponentBase {
     static get properties() {
         return {
             ...super.properties,
@@ -15,6 +15,12 @@ export default class PhoneNational2 extends mixins(LightComponentBase, UniqueIdG
             disabled: { type: Boolean, reflect: true },
             required: { type: Boolean, reflect: true },
         };
+    }
+
+    #uniqueId = generateUniqueId();
+
+    get uniqueId() {
+        return this.#uniqueId;
     }
 
     get fieldId() {
@@ -89,9 +95,9 @@ class PhoneIntl2 extends PhoneIntl {
      * @override Renders the input mask content including the country code.
      * @return {import('lit').TemplateResult | typeof nothing}
      */
-    renderInputMaskContent() {
+    renderMaskPlaceholderContent(p1, p2) {
         // prettier-ignore
-        return html`<pre>+${this.selectedCountry?.code}</pre>${super.renderInputMaskContent()}`;
+        return html`<pre>+${this.selectedCountry?.code}</pre>${super.renderMaskPlaceholderContent(p1,p2)}`;
     }
 }
 

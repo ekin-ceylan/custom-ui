@@ -76,8 +76,8 @@ phone-with-area-2 {
             flex-shrink: 0;
             width: 60px;
 
-            &:hover [role='combobox'],
-            &:focus-within [role='combobox'] {
+            &:hover [data-role='container'],
+            &:focus-within [data-role='container'] {
                 background-color: #eeeeee;
             }
 
@@ -110,7 +110,7 @@ phone-with-area-2 {
                 }
             }
 
-            [role='combobox'] {
+            [data-role='container'] {
                 height: 100%;
 
                 [data-filtered] > div[data-role='display'] {
@@ -188,6 +188,6 @@ custom-page-4 nav ul li {
     }
 }
 
-.combo-box div[role='combobox'] {
+.combo-box div[data-role='container'] {
     height: 100%;
 }
