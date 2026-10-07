@@ -12,6 +12,47 @@ class RichTextPopoverFormBase extends LightComponentBase {
         };
     }
 
+    /** Default label for the cancel button in the popover form */
+    get cancelButtonLabel() {
+        return this.localeMessages.cancelButtonLabel;
+    }
+    /** Default label for the save button in the popover form */
+    get saveButtonLabel() {
+        return this.localeMessages.saveButtonLabel;
+    }
+    /** Default label for the image URL input in the popover form */
+    get imageUrlLabel() {
+        return this.localeMessages.imageUrlLabel;
+    }
+    /** Default label for the image alt input in the popover form */
+    get imageAltLabel() {
+        return this.localeMessages.imageAltLabel;
+    }
+    /** Default placeholder for the image alt input in the popover form */
+    get imageAltPlaceholder() {
+        return this.localeMessages.imageAltPlaceholder;
+    }
+    /** Default label for the remove link button in the popover form */
+    get removeLinkButtonLabel() {
+        return this.localeMessages.removeLinkButtonLabel;
+    }
+    /** Default label for the open link in new tab checkbox in the popover form */
+    get openLinkInNewTabLabel() {
+        return this.localeMessages.openLinkInNewTabLabel;
+    }
+    /** Default label for the link URL input in the popover form */
+    get linkUrlLabel() {
+        return this.localeMessages.linkUrlLabel;
+    }
+    /** Default label for the open link in new tab checkbox in the popover form */
+    get linkTextLabel() {
+        return this.localeMessages.linkTextLabel;
+    }
+    /** Default placeholder for the link text input in the popover form */
+    get linkTextPlaceholder() {
+        return this.localeMessages.linkTextPlaceholder;
+    }
+
     /**
      * @returns {RichTextPopoverUrlBox}
      * @protected
@@ -151,14 +192,17 @@ export class RichTextImageForm extends RichTextPopoverFormBase {
     }
 
     render() {
+        const onInputUrl = event => (this.value.url = event.target.value);
+        const onInputAlt = event => (this.value.alt = event.target.value);
+
         return html`
             <form @submit=${this.onSubmit}>
-                <rtp-url-box label="Görsel Adresi" allowed-protocols="http: https:" allow-relative @input=${event => (this.value.url = event.target.value)} required></rtp-url-box>
-                <rtp-text-box label="Alt Metin" placeholder="Görsel açıklaması" @input=${event => (this.value.alt = event.target.value)}></rtp-text-box>
+                <rtp-url-box label=${this.imageUrlLabel} allowed-protocols="http: https:" allow-relative @input=${onInputUrl} required></rtp-url-box>
+                <rtp-text-box label=${this.imageAltLabel} placeholder=${this.imageAltPlaceholder} @input=${onInputAlt}></rtp-text-box>
 
                 <div>
-                    <button type="button" @click=${this.#onCancel}>İptal</button>
-                    <button type="submit">Kaydet</button>
+                    <button type="button" @click=${this.#onCancel}>${this.cancelButtonLabel}</button>
+                    <button type="submit">${this.saveButtonLabel}</button>
                 </div>
             </form>
         `;
@@ -204,22 +248,26 @@ export class RichTextLinkForm extends RichTextPopoverFormBase {
     /** @returns {import('lit').TemplateResult | typeof nothing} */
     renderRemoveButton() {
         if (this.value.isActive) {
-            return html`<button type="button" @click=${this.#removeLink}>Kaldır</button>`;
+            return html`<button type="button" @click=${this.#removeLink}>${this.removeLinkButtonLabel}</button>`;
         }
         return nothing;
     }
 
     render() {
+        const onInputUrl = event => (this.value.url = event.target.value);
+        const onInputText = event => (this.value.text = event.target.value);
+        const onInputBlank = event => (this.value.blank = event.target.checked);
+
         return html`
             <form @submit=${this.onSubmit}>
-                <rtp-url-box label="Bağlantı" allowed-protocols="http: https: mailto: tel:" allow-relative @input=${e => (this.value.url = e.target.value)} required></rtp-url-box>
-                <rtp-text-box label="Metin" placeholder="Tıklanabilir metin" @input=${e => (this.value.text = e.target.value)} ?hidden=${this.value.isBlock}></rtp-text-box>
-                <rtp-checkbox label="Yeni sekmede aç" @change=${e => (this.value.blank = e.target.checked)}>Yeni sekmede aç</rtp-checkbox>
+                <rtp-url-box label=${this.linkUrlLabel} allowed-protocols="http: https: mailto: tel:" allow-relative @input=${onInputUrl} required></rtp-url-box>
+                <rtp-text-box label=${this.linkTextLabel} placeholder=${this.linkTextPlaceholder} @input=${onInputText} ?hidden=${this.value.isBlock}></rtp-text-box>
+                <rtp-checkbox label=${this.openLinkInNewTabLabel} @change=${onInputBlank}>${this.openLinkInNewTabLabel}</rtp-checkbox>
 
                 <div>
                     ${this.renderRemoveButton()}
-                    <button type="button" @click=${this.#onCancel}>İptal</button>
-                    <button type="submit">Kaydet</button>
+                    <button type="button" @click=${this.#onCancel}>${this.cancelButtonLabel}</button>
+                    <button type="submit">${this.saveButtonLabel}</button>
                 </div>
             </form>
         `;

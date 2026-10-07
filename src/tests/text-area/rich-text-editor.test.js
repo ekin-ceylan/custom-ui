@@ -164,8 +164,8 @@ describe('Rich text editor - Component / Value Contract', () => {
         await secondHost.updateComplete;
 
         const firstEditor = first.querySelector('[data-role="editor"] [contenteditable="true"]');
-        const firstBoldButton = first.querySelector('button[title="Bold"]');
-        const secondBoldButton = secondHost.querySelector('button[title="Bold"]');
+        const firstBoldButton = first.querySelector('button[data-command="bold"]');
+        const secondBoldButton = secondHost.querySelector('button[data-command="bold"]');
 
         await first.user.click(firstEditor);
         await first.user.type(firstEditor, 'First');
@@ -177,7 +177,20 @@ describe('Rich text editor - Component / Value Contract', () => {
         expect(firstBoldButton.getAttribute('aria-pressed')).toBe('true');
         expect(secondBoldButton.getAttribute('aria-pressed')).toBe('false');
         expect(secondHost.value).toBe('');
-        expect(secondHost.activeBlock).toBe('p');
+        expect(secondHost.querySelector('select[data-role="block-selection"]').value).toBe('p');
+    });
+
+    it('exposes unique toolbar commands with accessible labels matching their tooltips', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        const commands = ['bold', 'italic', 'strike', 'bullet-list', 'ordered-list', 'undo', 'redo', 'source', 'link', 'image'];
+
+        for (const command of commands) {
+            const buttons = fixture.host.querySelectorAll(`button[data-command="${command}"]`);
+            expect(buttons).toHaveLength(1);
+            const button = buttons[0];
+            expect(button.getAttribute('aria-label')).toBeTruthy();
+            expect(button.getAttribute('aria-label')).toBe(button.getAttribute('title'));
+        }
     });
 });
 
@@ -261,7 +274,7 @@ describe('Rich text editor - Form Integration', () => {
 
     it('FORM-019 prevents editing through the source textarea while disabled', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Initial</p>" disabled></rich-text-editor>');
-        const sourceToggle = fixture.querySelector('button[title="Kaynak Kodu Göster"]');
+        const sourceToggle = fixture.querySelector('button[data-command="source"]');
 
         await fixture.user.click(sourceToggle);
         await fixture.user.type(fixture.input, 'Changed');
@@ -290,7 +303,7 @@ describe('Rich text editor - Form Integration', () => {
 
     it('FORM-020 prevents editing through the source textarea while readonly', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Initial</p>" readonly></rich-text-editor>');
-        const sourceToggle = fixture.querySelector('button[title="Kaynak Kodu Göster"]');
+        const sourceToggle = fixture.querySelector('button[data-command="source"]');
 
         await fixture.user.click(sourceToggle);
         await fixture.user.type(fixture.input, 'Changed');
@@ -364,7 +377,7 @@ describe('Rich text editor - Form Integration', () => {
 
     it('FORM-017 prevents source input from exceeding maxlength', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="5"></rich-text-editor>');
-        const sourceToggle = fixture.querySelector('button[title="Kaynak Kodu Göster"]');
+        const sourceToggle = fixture.querySelector('button[data-command="source"]');
 
         await fixture.user.click(sourceToggle);
         await fixture.user.type(fixture.input, '123456');
@@ -419,7 +432,7 @@ describe('Rich text editor - Links', () => {
     };
 
     const openLinkForm = async fixture => {
-        await fixture.user.click(fixture.querySelector('button[title="Bağlantı Ekle"]'));
+        await fixture.user.click(fixture.querySelector('button[data-command="link"]'));
 
         const linkForm = fixture.querySelector('rt-link-form');
         await linkForm.updateComplete;
@@ -615,8 +628,8 @@ describe('Rich text editor - Links', () => {
 
     it('LINK-022 supports undo and redo for link changes', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Example</p>"></rich-text-editor>');
-        const btnUndo = fixture.querySelector('button[title="Geri al"]');
-        const btnRedo = fixture.querySelector('button[title="İleri al"]');
+        const btnUndo = fixture.querySelector('button[data-command="undo"]');
+        const btnRedo = fixture.querySelector('button[data-command="redo"]');
 
         await selectAllText(fixture);
         await submitLinkForm(fixture, { url: 'https://example.com' });
@@ -651,7 +664,7 @@ describe('Rich text editor - Images', () => {
     });
 
     const submitImageForm = async (fixture, { url, alt }) => {
-        await fixture.user.click(fixture.querySelector('button[title="Görsel Ekle"]'));
+        await fixture.user.click(fixture.querySelector('button[data-command="image"]'));
 
         const imageForm = fixture.querySelector('rt-image-form');
         await imageForm.updateComplete;

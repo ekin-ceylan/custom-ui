@@ -1,10 +1,11 @@
 import { html, nothing } from 'lit';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { defineComponent, ifDefined, isEmpty, lockAllScrolls, spread, TextAreaBase, unlockAllScrolls } from 'custom-ui';
+import { defineComponent, ifDefined, isEmpty, lockAllScrolls, spread, unlockAllScrolls } from 'custom-ui';
 import { formatEditorContent, trimTrailingP } from './modules/rich-text-helper.js';
 import RichTextImage from './models/RichTextImage.js';
 import RichTextEditorLink from './models/RichTextEditorLink.js';
+import RichTextEditorBase from './base/rich-text-editor-base.js';
 import { RichTextImageForm, RichTextLinkForm } from './rich-text-popover-forms.js';
 import createAttributeExtension from './modules/attribute-extensions.js';
 import createElementExtensions from './modules/element-extensions.js';
@@ -12,8 +13,9 @@ import createElementExtensions from './modules/element-extensions.js';
 /**
  * Rich Text Editor component for the Custom UI library.
  * Provides a rich text editing interface with support for images, links, and various text formatting options.
+ * @extends {RichTextEditorBase}
  */
-export default class RichTextEditor extends TextAreaBase {
+export default class RichTextEditor extends RichTextEditorBase {
     // #region STATICS, FIELDS, GETTERS
 
     /** @type {Editor | null} */
@@ -24,38 +26,25 @@ export default class RichTextEditor extends TextAreaBase {
     #linkForm = null;
     /** @type {RichTextImageForm | null} */
     #imageForm = null;
-    #showSourceCode = false; // Kaynak kodu göster/gizle durumu
 
-    /** Undo button title from locale messages */
-    get undoButtonTitle() {
-        return this.localeMessages.undoButtonTitle;
+    /** Title and accessible label for the link button. */
+    get linkButtonTitle() {
+        return this.localeMessages.linkButtonTitle;
     }
 
-    /** Redo button title from locale messages */
-    get redoButtonTitle() {
-        return this.localeMessages.redoButtonTitle;
-    }
-
-    get activeBlock() {
-        if (!this.#editor) return 'p';
-        if (this.#editor.isActive('heading', { level: 1 })) return 'h1';
-        if (this.#editor.isActive('heading', { level: 2 })) return 'h2';
-        if (this.#editor.isActive('heading', { level: 3 })) return 'h3';
-        if (this.#editor.isActive('heading', { level: 4 })) return 'h4';
-        if (this.#editor.isActive('heading', { level: 5 })) return 'h5';
-        if (this.#editor.isActive('heading', { level: 6 })) return 'h6';
-        if (this.#editor.isActive('blockquote')) return 'blockquote';
-        if (this.#editor.isActive('codeBlock')) return 'codeBlock';
-        return 'p';
+    /** Title and accessible label for the image button. */
+    get imageButtonTitle() {
+        return this.localeMessages.imageButtonTitle;
     }
 
     // #endregion STATICS, FIELDS, GETTERS
+
     connectedCallback() {
         super.connectedCallback();
 
         // Component DOM'a tekrar eklendiyse (reconnect), editörü yeniden başlat (RT-012)
         if (this.hasUpdated && !this.#editor) {
-            this.updateComplete.then(() => this.#initEditor());
+            void this.#restartEditor();
         }
     }
 
@@ -167,7 +156,7 @@ export default class RichTextEditor extends TextAreaBase {
     }
 
     #onFocus() {
-        if (!this.#showSourceCode) this.#editor.commands.focus();
+        if (!this.showSourceCode) this.#editor.commands.focus();
     }
 
     /**
@@ -176,12 +165,6 @@ export default class RichTextEditor extends TextAreaBase {
      */
     #onInvalid(_event) {
         this.#checkValidity(true);
-    }
-
-    #onBtnCodeClick(_event) {
-        this.#showSourceCode = !this.#showSourceCode;
-        this.requestUpdate();
-        this.#focusEditor();
     }
 
     #onLinkSubmit(event) {
@@ -254,6 +237,12 @@ export default class RichTextEditor extends TextAreaBase {
 
     // #endregion EVENT HANDLERS
 
+    /** @returns {Promise<void>} */
+    async #restartEditor() {
+        await this.updateComplete;
+        this.#initEditor();
+    }
+
     #initEditor() {
         this.#editorContainer = this.renderRoot.querySelector('[data-role="editor"]');
         if (!this.#editorContainer || this.#editor) return;
@@ -301,14 +290,6 @@ export default class RichTextEditor extends TextAreaBase {
 
         return trimTrailingP(content);
     }
-
-    #toggleBold = () => this.#editor?.chain().focus().toggleBold().run();
-    #toggleItalic = () => this.#editor?.chain().focus().toggleItalic().run();
-    #toggleStrike = () => this.#editor?.chain().focus().toggleStrike().run();
-    #toggleBulletList = () => this.#editor?.chain().focus().toggleBulletList().run();
-    #toggleOrderedList = () => this.#editor?.chain().focus().toggleOrderedList().run();
-    #undo = () => this.#editor?.chain().focus().undo().run();
-    #redo = () => this.#editor?.chain().focus().redo().run();
 
     #showLinkForm() {
         if (!this.#editor) return;
@@ -388,28 +369,6 @@ export default class RichTextEditor extends TextAreaBase {
         popover.dataset.placement = openAbove ? 'top' : 'bottom';
     }
 
-    #focusEditor() {
-        if (this.disabled) return;
-        if (this.#showSourceCode) this.inputElement.focus();
-        else this.#editor.commands.focus();
-    }
-
-    #handleBlockTypeChange(e) {
-        const value = e.target.value;
-        const chain = this.#editor.chain().focus();
-
-        if (value === 'p') {
-            chain.setParagraph().run();
-        } else if (value.startsWith('h')) {
-            const level = /** @type { 1 | 2 | 3 | 4 | 5 | 6 } */ (Number.parseInt(value.charAt(1), 10));
-            chain.toggleHeading({ level }).run();
-        } else if (value === 'blockquote') {
-            chain.toggleBlockquote().run();
-        } else if (value === 'codeBlock') {
-            chain.toggleCodeBlock().run();
-        }
-    }
-
     /** @returns {import('lit').TemplateResult | typeof nothing} */
     renderPlaceholder() {
         if (!isEmpty(this.value) || !this.placeholder) return nothing;
@@ -429,50 +388,54 @@ export default class RichTextEditor extends TextAreaBase {
         return html`<div data-role="description" id=${this.descriptionId}>${this.description}</div>`;
     }
 
-    renderButton(clickListener, label, title, ...pressedArgs) {
-        const [name, attributes] = pressedArgs;
-        const ariaPressed = this.#editor?.isActive(name, attributes) ? 'true' : 'false';
-        return html`<button type="button" @click=${clickListener} aria-pressed=${ariaPressed} title="${title}">${label}</button>`;
+    renderImageButton() {
+        const showImageForm = () => this.#showImageForm();
+        const ariaPressed = this.#editor?.isActive('image') ?? false;
+
+        return html`<button
+            type="button"
+            @click=${showImageForm}
+            aria-pressed=${ariaPressed}
+            data-command="image"
+            aria-label=${this.imageButtonTitle}
+            title=${this.imageButtonTitle}
+        >
+            ${this.renderIcon([
+                'M15 8h.01',
+                'M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12',
+                'M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5',
+                'M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3',
+            ])}
+        </button>`;
     }
 
-    renderBlockSelection() {
-        return html`<select @change=${this.#handleBlockTypeChange} .value=${this.activeBlock} aria-label="Text Style">
-            <option value="p" title="Paragraph">¶</option>
-            <option value="h1" title="Heading 1">H1</option>
-            <option value="h2" title="Heading 2">H2</option>
-            <option value="h3" title="Heading 3">H3</option>
-            <option value="h4" title="Heading 4">H4</option>
-            <option value="h5" title="Heading 5">H5</option>
-            <option value="h6" title="Heading 6">H6</option>
-            <option value="blockquote" title="Blockquote">❜❜</option>
-            <option value="codeBlock" title="Code Block">${'</>'}</option>
-        </select>`;
+    /**
+     * Renders the link button for the rich-text editor.
+     * @returns {import('lit').TemplateResult | typeof nothing}
+     */
+    renderLinkButton() {
+        const showLinkForm = () => this.#showLinkForm();
+        const ariaPressed = this.#editor?.isActive('link') ?? false;
+
+        return html`<button type="button" @click=${showLinkForm} aria-pressed=${ariaPressed} data-command="link" aria-label=${this.linkButtonTitle} title=${this.linkButtonTitle}>
+            ${this.renderIcon([
+                'M9 15l6 -6',
+                'M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464',
+                'M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463',
+            ])}
+        </button>`;
+    }
+
+    /** @override Adds link and image buttons to the font buttons */
+    renderToolbarContent(editor) {
+        const superButtons = super.renderToolbarContent(editor);
+        return html`${superButtons}${this.renderLinkButton()}${this.renderImageButton()}`;
     }
 
     render() {
-        const canUndo = this.#editor?.can().undo() ?? false;
-        const canRedo = this.#editor?.can().redo() ?? false;
-
-        const btnUndo = html`<button type="button" @click=${this.#undo} ?disabled=${!canUndo} title="${this.undoButtonTitle}">↩</button>`;
-        const btnRedo = html`<button type="button" @click=${this.#redo} ?disabled=${!canRedo} title="${this.redoButtonTitle}">↪</button>`;
-        const btnLink = this.renderButton(this.#showLinkForm, '🔗', 'Bağlantı Ekle', 'link');
-        const btnImage = this.renderButton(this.#showImageForm, '▧', 'Görsel Ekle', 'image');
-
-        const btnBold = this.renderButton(this.#toggleBold, 'B', 'Bold', 'bold');
-        const btnItalic = this.renderButton(this.#toggleItalic, 'I', 'Italic', 'italic');
-        const btnStrike = this.renderButton(this.#toggleStrike, 'S', 'Strike', 'strike');
-        const btnBulletList = this.renderButton(this.#toggleBulletList, '•', 'Bullet List', 'bulletList');
-        const btnOrderedList = this.renderButton(this.#toggleOrderedList, '1.', 'Ordered List', 'orderedList');
-
-        const commandButtons = html`${this.renderBlockSelection()} ${btnBold} ${btnItalic} ${btnStrike} ${btnBulletList} ${btnOrderedList} ${btnLink} ${btnImage}`;
-
         return html`${this.renderLabel()}
-            <div data-role="container" data-source-view=${this.#showSourceCode ? 'true' : 'false'}>
-                <div role="toolbar">
-                    <button type="button" @click=${this.#focusEditor} data-role="skip-to-editor">Editöre Atla</button>
-                    ${this.#showSourceCode ? nothing : commandButtons} ${btnUndo} ${btnRedo}
-                    <button type="button" @click=${this.#onBtnCodeClick} title="Kaynak Kodu Göster" aria-pressed=${this.#showSourceCode}>${'<>'}</button>
-                </div>
+            <div data-role="container" data-source-view=${this.showSourceCode ? 'true' : 'false'}>
+                ${this.renderToolbar(this.#editor)}
                 <textarea
                     ${spread(this.getScopedAttrs('input'))}
                     id=${this.fieldId}
@@ -497,10 +460,9 @@ export default class RichTextEditor extends TextAreaBase {
                     @focus=${this.#onFocus}
                     @invalid=${this.#onInvalid}
                     data-role="source"
-                    tabindex=${this.#showSourceCode ? nothing : '-1'}
+                    tabindex=${this.showSourceCode ? nothing : '-1'}
                 ></textarea>
-                <div data-role="editor" @click=${this.#focusEditor}></div>
-                ${this.renderPlaceholder()} ${this.renderClearButton()} ${this.renderDescription()}
+                ${this.renderEditorDiv(this.#editor)} ${this.renderPlaceholder()} ${this.renderClearButton()} ${this.renderDescription()}
             </div>
             <rt-link-form @submit=${this.#onLinkSubmit} @remove=${this.#onLinkRemove} @toggle=${this.#onLinkToggle} @cancel=${this.#onLinkCancel} popover="auto"></rt-link-form>
             <rt-image-form @submit=${this.#onImageSubmit} @toggle=${this.#onImageToggle} @cancel=${this.#onImageCancel} popover="auto"></rt-image-form>

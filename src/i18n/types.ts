@@ -119,6 +119,93 @@ export interface LocaleMessages {
      */
     redoButtonTitle: string;
 
+    /** Title and accessible label for the bold-formatting button. */
+    boldButtonTitle: string;
+
+    /** Title and accessible label for the italic-formatting button. */
+    italicButtonTitle: string;
+
+    /** Title and accessible label for the strikethrough-formatting button. */
+    strikeButtonTitle: string;
+
+    /** Visible text and accessible label for the skip-to-editor control. */
+    skipToEditorLabel: string;
+
+    /** Accessible label for the block-style selection control. */
+    textStyleLabel: string;
+
+    /** Tooltip for the paragraph option in the block-style selector. */
+    paragraphOptionTitle: string;
+
+    /** Tooltip for the level-one heading option. */
+    heading1OptionTitle: string;
+
+    /** Tooltip for the level-two heading option. */
+    heading2OptionTitle: string;
+
+    /** Tooltip for the level-three heading option. */
+    heading3OptionTitle: string;
+
+    /** Tooltip for the level-four heading option. */
+    heading4OptionTitle: string;
+
+    /** Tooltip for the level-five heading option. */
+    heading5OptionTitle: string;
+
+    /** Tooltip for the level-six heading option. */
+    heading6OptionTitle: string;
+
+    /** Tooltip for the blockquote option in the block-style selector. */
+    blockquoteOptionTitle: string;
+
+    /** Tooltip for the code-block option in the block-style selector. */
+    codeBlockOptionTitle: string;
+
+    /** Title and accessible label for the bulleted-list button. */
+    bulletListButtonTitle: string;
+
+    /** Title and accessible label for the ordered-list button. */
+    orderedListButtonTitle: string;
+
+    /** Title and accessible label for the source-code toggle button. */
+    sourceCodeButtonTitle: string;
+
+    /** Title and accessible label for the add-link button. */
+    linkButtonTitle: string;
+
+    /** Title and accessible label for the add-image button. */
+    imageButtonTitle: string;
+
+    /** Field label for the link URL input. */
+    linkUrlLabel: string;
+
+    /** Field label for the link text input. */
+    linkTextLabel: string;
+
+    /** Placeholder for the link text input. */
+    linkTextPlaceholder: string;
+
+    /** Label for the option to open a link in a new tab. */
+    openLinkInNewTabLabel: string;
+
+    /** Field label for the image URL input. */
+    imageUrlLabel: string;
+
+    /** Field label for the image alternative-text input. */
+    imageAltLabel: string;
+
+    /** Placeholder for the image alternative-text input. */
+    imageAltPlaceholder: string;
+
+    /** Visible text for the remove-link action. */
+    removeLinkButtonLabel: string;
+
+    /** Visible text for cancel actions in rich-text popovers. */
+    cancelButtonLabel: string;
+
+    /** Visible text for submit actions in rich-text popovers. */
+    saveButtonLabel: string;
+
     // #endregion SIMPLE STRINGS
 
     // #region COMPLEX MESSAGES WITH SPECIAL LOGIC

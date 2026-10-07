@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="tr">
+    <head>
+        <link rel="modulepreload" href="./src/main.js" />
+
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <!-- <link rel="stylesheet" href="./src/styles/check-box.css" /> -->
+        <link rel="stylesheet" href="./src/styles/input.css" />
+        <link rel="stylesheet" href="./src/styles/links.css" />
+        <link rel="stylesheet" href="./src/styles/select.css" />
+        <link rel="stylesheet" href="./src/styles/combo-box.css" />
+        <link rel="stylesheet" href="./src/styles/password.css" />
+        <link rel="stylesheet" href="./src/styles/range.css" />
+        <link rel="stylesheet" href="./src/styles/paginations.css" />
+        <link rel="stylesheet" href="./src/styles/dialog.css" />
+        <link rel="stylesheet" href="./src/styles/rich-text.css" />
+        <title>Custom Textbox Test</title>
+    </head>
+
+    <body>
+        <form>
+            <!-- <auto-complete label="City" placeholder="Şehir seç" clearable required>
+                <option value="initial">Initial</option>
+                <option value="initial 2">Initial 2</option>
+                <option value="initial 3">Initial 3</option>
+                <option value="changed">Changed</option>
+            </auto-complete> -->
+
+            <auto-complete label="City" clearable required placeholder="Şehir seç"></auto-complete>
+
+            <br />
+            <br />
+
+            <!-- <combo-box label="City" placeholder="Pick"></combo-box> -->
+            <br />
+            <br />
+            <look-up label="City" name="city" value="initial" required clearable placeholder="Şehir seç">
+                <option value="initial">Initial</option>
+                <option value="changed">Changed</option>
+            </look-up>
+            <br />
+            <br />
+            <button type="reset">Reset</button>
+
+            <br />
+        </form>
+        <rich-text-editor
+            id="editor"
+            placeholder="Type something..."
+            value="<p>Initial</p>"
+            label="İçerik"
+            required
+            clearable
+            style="width: 100%; height: 300px"
+            maxlength="50"
+            minlength="10"
+        ></rich-text-editor>
+
+        <pre>&lt;table class="my-table"&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;test&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;</pre>
+        <script type="module" src="./src/main.js"></script>
+    </body>
+</html>
+
+<!-- herhangi bir attr eklendiğinde nasıl davranacak -->
