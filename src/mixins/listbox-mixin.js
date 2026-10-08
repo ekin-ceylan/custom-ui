@@ -2,6 +2,7 @@ import { html, nothing } from 'lit';
 import { lockAllScrolls, unlockAllScrolls } from '../modules/scroll-lock-helper.js';
 import ListboxItem from '../models/ListboxItem.js';
 import { generateUniqueId } from '../modules/unique-id-generator.js';
+import icons from '../modules/icons.js';
 
 /**
  * @typedef {import('../base/light-component-base.js').default} LightComponentBase
@@ -249,9 +250,7 @@ export default function ListboxMixin(Base) {
          * @returns {import('lit').TemplateResult | typeof nothing}
          */
         renderIndicator() {
-            return html`<svg role="presentation" data-chevron width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>`;
+            return icons.chevronDown(2, { role: 'presentation', 'data-chevron': true });
         }
 
         /**

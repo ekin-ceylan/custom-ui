@@ -5,6 +5,7 @@ export { mixins } from '../modules/mixin-utils.js';
 export { generateUniqueId } from '../modules/unique-id-generator.js';
 export { spread } from '../modules/spread.js';
 export { getLocale, setLocale, configure, registerLocale, getMessages, getMessage } from '../i18n/locale.js';
+export { renderIcon } from '../modules/icons.js';
 
 // Constants
 export { default as Keys } from '../enums/Keys.js';

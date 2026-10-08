@@ -63,7 +63,7 @@ select-box > div > select ~ [data-clear] {
     border: none;
     background: none;
     line-height: 0px;
-    padding: 4px;
+    padding: 1px;
     right: var(--sbx-clear-right-distance);
     border-radius: 2px;
 }

@@ -1,6 +1,6 @@
 import { TextAreaBase } from 'custom-ui';
 import { html, nothing } from 'lit';
-import icons from '../../../modules/icons.js';
+import { arrowBackUp, arrowForwardUp, bold, bulletList, italic, listNumbers, sourceCode, strikethrough } from '../modules/icons.js';
 
 /**
  * Base class for the rich text editor component.
@@ -114,7 +114,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const undo = () => editor?.chain().focus().undo().run();
         const title = this.localeMessages.undoButtonTitle;
 
-        return html`<button type="button" @click=${undo} ?disabled=${!canUndo} data-command="undo" aria-label=${title} title="${title}">${icons.arrowBackUp}</button>`;
+        return html`<button type="button" @click=${undo} ?disabled=${!canUndo} data-command="undo" aria-label=${title} title="${title}">${arrowBackUp()}</button>`;
     }
 
     /**
@@ -127,7 +127,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const redo = () => editor?.chain().focus().redo().run();
         const title = this.localeMessages.redoButtonTitle;
 
-        return html`<button type="button" @click=${redo} ?disabled=${!canRedo} data-command="redo" aria-label=${title} title="${title}">${icons.arrowForwardUp}</button>`;
+        return html`<button type="button" @click=${redo} ?disabled=${!canRedo} data-command="redo" aria-label=${title} title="${title}">${arrowForwardUp()}</button>`;
     }
 
     /**
@@ -140,7 +140,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const ariaPressed = editor?.isActive('bold') ?? false;
         const title = this.localeMessages.boldButtonTitle;
 
-        return html`<button type="button" @click=${toggleBold} aria-pressed=${ariaPressed} data-command="bold" aria-label=${title} title="${title}">${icons.bold}</button>`;
+        return html`<button type="button" @click=${toggleBold} aria-pressed=${ariaPressed} data-command="bold" aria-label=${title} title="${title}">${bold()}</button>`;
     }
 
     /**
@@ -153,7 +153,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const ariaPressed = editor?.isActive('italic') ?? false;
         const title = this.localeMessages.italicButtonTitle;
 
-        return html`<button type="button" @click=${toggleItalic} aria-pressed=${ariaPressed} data-command="italic" aria-label=${title} title="${title}">${icons.italic}</button>`;
+        return html`<button type="button" @click=${toggleItalic} aria-pressed=${ariaPressed} data-command="italic" aria-label=${title} title="${title}">${italic()}</button>`;
     }
 
     /**
@@ -167,7 +167,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const title = this.localeMessages.strikeButtonTitle;
 
         return html`<button type="button" @click=${toggleStrike} aria-pressed=${ariaPressed} data-command="strike" aria-label=${title} title="${title}">
-            ${icons.strikethrough}
+            ${strikethrough()}
         </button>`;
     }
 
@@ -182,7 +182,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const title = this.localeMessages.bulletListButtonTitle;
 
         return html`<button type="button" @click=${toggleBulletList} aria-pressed=${ariaPressed} data-command="bullet-list" aria-label=${title} title=${title}>
-            ${icons.bulletList}
+            ${bulletList()}
         </button>`;
     }
 
@@ -197,7 +197,7 @@ export default class RichTextEditorBase extends TextAreaBase {
         const title = this.localeMessages.orderedListButtonTitle;
 
         return html`<button type="button" @click=${toggleOrderedList} aria-pressed=${ariaPressed} data-command="ordered-list" aria-label=${title} title=${title}>
-            ${icons.listNumbers}
+            ${listNumbers()}
         </button>`;
     }
 
@@ -215,9 +215,7 @@ export default class RichTextEditorBase extends TextAreaBase {
             this.#focusEditor(editor);
         };
 
-        return html`<button type="button" @click=${onClick} data-command="source" aria-label=${title} title=${title} aria-pressed=${this.showSourceCode}>
-            ${icons.sourceCode}
-        </button>`;
+        return html`<button type="button" @click=${onClick} data-command="source" aria-label=${title} title=${title} aria-pressed=${this.showSourceCode}>${sourceCode()}</button>`;
     }
 
     /**

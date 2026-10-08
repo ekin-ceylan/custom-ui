@@ -2,6 +2,7 @@ import { html, nothing } from 'lit';
 import FormControlBase from './form-control-base.js';
 import Keys from '../enums/Keys.js';
 import { spread } from '../modules/spread.js';
+import { times } from '../modules/icons.js';
 
 /**
  * Base class for standard form control components that have `<label>` + `<input>` + `<error>` structure, providing common functionality for inputs, selects, and other form controls.
@@ -120,7 +121,7 @@ export default class StandardControlBase extends FormControlBase {
      * @return {import('lit').TemplateResult | string | typeof nothing}
      */
     renderClearButtonContent() {
-        return html`&times;`;
+        return times();
     }
 
     /**

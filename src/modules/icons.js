@@ -1,23 +1,22 @@
+import { spread } from '../modules/spread.js';
 import { html, svg } from 'lit';
 
-/** A collection of SVG icons */
-const icons = {
-    arrowBackUp: renderIcon(['M9 14l-4 -4l4 -4', 'M5 10h11a4 4 0 1 1 0 8h-1']),
-    arrowForwardUp: renderIcon(['M15 14l4 -4l-4 -4', 'M19 10h-11a4 4 0 1 0 0 8h1']),
-    bold: renderIcon(['M7 5h6a3.5 3.5 0 0 1 0 7h-6l0 -7', 'M13 12h1a3.5 3.5 0 0 1 0 7h-7v-7'], 3),
-    italic: renderIcon(['M11 5l6 0', 'M7 19l6 0', 'M14 5l-4 14']),
-    strikethrough: renderIcon(['M5 12l14 0', 'M16 6.5a4 2 0 0 0 -4 -1.5h-1a3.5 3.5 0 0 0 0 7h2a3.5 3.5 0 0 1 0 7h-1.5a4 2 0 0 1 -4 -1.5']),
-    bulletList: renderIcon(['M9 6l11 0', 'M9 12l11 0', 'M9 18l11 0', 'M5 6l0 .01', 'M5 12l0 .01', 'M5 18l0 .01']),
-    listNumbers: renderIcon(['M11 6h9', 'M11 12h9', 'M12 18h8', 'M4 16a2 2 0 1 1 4 0c0 .591 -.5 1 -1 1.5l-3 2.5h4', 'M6 10v-6l-2 2']),
-    sourceCode: renderIcon(['M14.5 4h2.5a3 3 0 0 1 3 3v10a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-5', 'M6 5l-2 2l2 2', 'M10 9l2 -2l-2 -2']),
-    link: renderIcon(['M9 15l6 -6', 'M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464', 'M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463']),
-    photo: renderIcon([
-        'M15 8h.01',
-        'M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12',
-        'M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5',
-        'M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3',
-    ]),
-};
+export const chevronDown = (strokeWidth = 2, attr = {}) => renderIcon(['M6 9l6 6l6 -6'], strokeWidth, attr);
+export const eye = (strokeWidth = 2, attr = {}) =>
+    renderIcon(['M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0', 'M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6'], strokeWidth, attr);
+export const eyeOff = (strokeWidth = 2, attr = {}) =>
+    renderIcon(
+        [
+            'M10.585 10.587a2 2 0 0 0 2.829 2.828',
+            'M16.681 16.673a8.717 8.717 0 0 1 -4.681 1.327c-3.6 0 -6.6 -2 -9 -6c1.272 -2.12 2.712 -3.678 4.32 -4.674m2.86 -1.146a9.055 9.055 0 0 1 1.82 -.18c3.6 0 6.6 2 9 6c-.666 1.11 -1.379 2.067 -2.138 2.87',
+            'M3 3l18 18',
+        ],
+        strokeWidth,
+        attr
+    );
+export const times = (strokeWidth = 2, attr = {}) => renderIcon(['M18 6l-12 12', 'M6 6l12 12'], strokeWidth, attr);
+
+const icons = { chevronDown, eye, eyeOff, times };
 
 /**
  * Renders an SVG icon with the given paths and stroke width.
@@ -25,10 +24,11 @@ const icons = {
  * @param {number} strokeWidth
  * @returns {import('lit').TemplateResult}
  */
-function renderIcon(paths, strokeWidth = 2) {
+function renderIcon(paths, strokeWidth = 2, attr = {}) {
     return html`<svg
         width="16"
         height="16"
+        ${spread(attr)}
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -41,4 +41,5 @@ function renderIcon(paths, strokeWidth = 2) {
     </svg>`;
 }
 
+export { renderIcon };
 export default icons;

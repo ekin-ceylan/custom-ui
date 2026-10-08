@@ -40,6 +40,7 @@ export default class TcBox extends mixins(TextControlBase, MaskPlaceholderMixin)
         this.allowPattern = `[0-9]{1,${this.#digits}}`;
         this.pattern = String.raw`\d{${this.#digits}}`;
         this.placeholder = '_'.repeat(this.#digits);
+        this.maskPlaceholder = '_'.repeat(this.#digits);
     }
 
     isComplete() {

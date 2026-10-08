@@ -106,10 +106,15 @@ code-box :is(input, [data-role='overlay']) {
     border: none;
     background: none;
     line-height: 0px;
-    padding: 4px;
+    padding: 1px;
     right: var(--txt-clear-right-distance);
     border-radius: 2px;
     cursor: pointer;
+}
+
+[data-clear] > svg {
+    width: 100%;
+    height: 100%;
 }
 
 input:not([data-has-value]):not(:focus) ~ [data-role='underlay'] {

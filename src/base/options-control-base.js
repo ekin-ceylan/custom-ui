@@ -1,4 +1,5 @@
-import { html, nothing } from 'lit';
+import { nothing } from 'lit';
+import icons from '../modules/icons.js';
 import SlotCollectorMixin from '../mixins/slot-collector-mixin.js';
 import { mixins } from '../modules/mixin-utils.js';
 import StandardControlBase from './standard-control-base.js';
@@ -43,9 +44,7 @@ export default class OptionsControlBase extends mixins(StandardControlBase, Slot
      * @returns {import('lit').TemplateResult | typeof nothing}
      */
     renderIndicator() {
-        return html`<svg role="presentation" data-chevron width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>`;
+        return icons.chevronDown(2, { role: 'presentation', 'data-chevron': true });
     }
 
     /**

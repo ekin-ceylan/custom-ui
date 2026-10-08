@@ -9,7 +9,7 @@ import RichTextEditorBase from './base/rich-text-editor-base.js';
 import { RichTextImageForm, RichTextLinkForm } from './rich-text-popover-forms.js';
 import createAttributeExtension from './modules/attribute-extensions.js';
 import createElementExtensions from './modules/element-extensions.js';
-import icons from '../../modules/icons.js';
+import { link, photo } from './modules/icons.js';
 
 /**
  * Rich Text Editor component for the Custom UI library.
@@ -384,7 +384,7 @@ export default class RichTextEditor extends RichTextEditorBase {
         const ariaPressed = this.#editor?.isActive('image') ?? false;
         const title = this.localeMessages.imageButtonTitle;
 
-        return html`<button type="button" @click=${showImageForm} aria-pressed=${ariaPressed} data-command="image" aria-label=${title} title=${title}>${icons.photo}</button>`;
+        return html`<button type="button" @click=${showImageForm} aria-pressed=${ariaPressed} data-command="image" aria-label=${title} title=${title}>${photo()}</button>`;
     }
 
     /**
@@ -396,7 +396,7 @@ export default class RichTextEditor extends RichTextEditorBase {
         const ariaPressed = this.#editor?.isActive('link') ?? false;
         const title = this.localeMessages.linkButtonTitle;
 
-        return html`<button type="button" @click=${showLinkForm} aria-pressed=${ariaPressed} data-command="link" aria-label=${title} title=${title}>${icons.link}</button>`;
+        return html`<button type="button" @click=${showLinkForm} aria-pressed=${ariaPressed} data-command="link" aria-label=${title} title=${title}>${link()}</button>`;
     }
 
     /** @override Adds link and image buttons to the font buttons */
