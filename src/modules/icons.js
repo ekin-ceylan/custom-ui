@@ -16,18 +16,16 @@ export const eyeOff = (strokeWidth = 2, attr = {}) =>
     );
 export const times = (strokeWidth = 2, attr = {}) => renderIcon(['M18 6l-12 12', 'M6 6l12 12'], strokeWidth, attr);
 
-const icons = { chevronDown, eye, eyeOff, times };
-
 /**
  * Renders an SVG icon with the given paths and stroke width.
  * @param {string[]} paths
  * @param {number} strokeWidth
  * @returns {import('lit').TemplateResult}
  */
-function renderIcon(paths, strokeWidth = 2, attr = {}) {
+export function renderIcon(paths, strokeWidth = 2, attr = {}) {
     return html`<svg
-        width="16"
-        height="16"
+        width="1em"
+        height="1em"
         ${spread(attr)}
         viewBox="0 0 24 24"
         fill="none"
@@ -40,6 +38,3 @@ function renderIcon(paths, strokeWidth = 2, attr = {}) {
         ${paths.map(path => svg`<path d=${path}></path>`)}
     </svg>`;
 }
-
-export { renderIcon };
-export default icons;

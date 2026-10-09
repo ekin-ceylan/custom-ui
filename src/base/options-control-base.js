@@ -1,5 +1,5 @@
 import { nothing } from 'lit';
-import icons from '../modules/icons.js';
+import { chevronDown } from '../modules/icons.js';
 import SlotCollectorMixin from '../mixins/slot-collector-mixin.js';
 import { mixins } from '../modules/mixin-utils.js';
 import StandardControlBase from './standard-control-base.js';
@@ -44,7 +44,7 @@ export default class OptionsControlBase extends mixins(StandardControlBase, Slot
      * @returns {import('lit').TemplateResult | typeof nothing}
      */
     renderIndicator() {
-        return icons.chevronDown(2, { role: 'presentation', 'data-chevron': true });
+        return chevronDown(2, { role: 'presentation', 'data-chevron': true });
     }
 
     /**

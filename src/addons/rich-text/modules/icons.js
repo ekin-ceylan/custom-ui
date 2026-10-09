@@ -28,7 +28,3 @@ export const sourceCode = (strokeWidth = 2, attr = {}) =>
     renderIcon(['M14.5 4h2.5a3 3 0 0 1 3 3v10a3 3 0 0 1 -3 3h-10a3 3 0 0 1 -3 -3v-5', 'M6 5l-2 2l2 2', 'M10 9l2 -2l-2 -2'], strokeWidth, attr);
 export const strikethrough = (strokeWidth = 2, attr = {}) =>
     renderIcon(['M5 12l14 0', 'M16 6.5a4 2 0 0 0 -4 -1.5h-1a3.5 3.5 0 0 0 0 7h2a3.5 3.5 0 0 1 0 7h-1.5a4 2 0 0 1 -4 -1.5'], strokeWidth, attr);
-
-const icons = { arrowBackUp, arrowForwardUp, bold, bulletList, italic, link, listNumbers, photo, sourceCode, strikethrough };
-
-export default icons;
