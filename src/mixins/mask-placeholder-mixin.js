@@ -28,13 +28,14 @@ import { html, nothing } from 'lit';
  * @returns {TBase & Constructor<MaskPlaceholder>}
  */
 export default function MaskPlaceholderMixin(Base) {
-    return class MaskPlaceholder extends Base {
+    const Mixed = class MaskPlaceholder extends Base {
         /**
          * Renders the entered-value prefix and the unmatched mask suffix.
          * Override this method to customize the underlay while keeping the
          * wrapper produced by `renderMaskPlaceholder()`.
          * @param {string} currentValue - The portion of the value already entered.
          * @param {string} remainingPlaceholder - The mask suffix after the entered value.
+         * @protected
          * @returns {import('lit').TemplateResult | typeof nothing}
          */
         renderMaskPlaceholderContent(currentValue, remainingPlaceholder) {
@@ -50,6 +51,7 @@ export default function MaskPlaceholderMixin(Base) {
          * @param {string | null | undefined} value - The current input value.
          * @param {string | null | undefined} placeholder - The mask pattern. Nullish values are treated as empty; the component's `placeholder` property is not read automatically.
          * @returns {import('lit').TemplateResult | typeof nothing}
+         * @protected
          */
         renderMaskPlaceholder(value, placeholder) {
             const currentValue = value ?? '';
@@ -60,4 +62,5 @@ export default function MaskPlaceholderMixin(Base) {
             return html`<div aria-hidden="true" data-role="underlay">${this.renderMaskPlaceholderContent(currentValue, remainingPlaceholder)}</div>`;
         }
     };
+    return /** @type {Constructor<MaskPlaceholder> & TBase} */ (/** @type {unknown} */ (Mixed));
 }

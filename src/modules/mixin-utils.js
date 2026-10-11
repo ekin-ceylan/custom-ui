@@ -16,6 +16,7 @@
  */
 
 /**
+ * Applies one or more mixins to the given base class.
  * @template {Constructor<any>} TBase
  * @template {object} M1
  * @overload
@@ -25,6 +26,7 @@
  */
 
 /**
+ * Applies one or more mixins to the given base class.
  * @template {Constructor<any>} TBase
  * @template {object} M1
  * @template {object} M2
@@ -36,6 +38,7 @@
  */
 
 /**
+ * Applies one or more mixins to the given base class.
  * @template {Constructor<any>} TBase
  * @template {object} M1
  * @template {object} M2

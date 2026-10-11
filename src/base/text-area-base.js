@@ -103,6 +103,7 @@ export default class TextAreaBase extends mixins(StandardControlBase, SlotCollec
      * @param {string} slotName
      * @returns {boolean}
      * @override
+     * @protected
      */
     validateNode(node, slotName) {
         if (slotName === 'default') {

@@ -2,7 +2,7 @@ import { html, nothing } from 'lit';
 import PropValidatorMixin from '../mixins/prop-validator-mixin.js';
 import { mixins } from '../modules/mixin-utils.js';
 import { ifDefined } from '../modules/utilities.js';
-import LightComponentBase from '../base/light-component-base.js';
+import LightComponentBase from './light-component-base.js';
 import { generateUniqueId } from '../modules/unique-id-generator.js';
 
 /**

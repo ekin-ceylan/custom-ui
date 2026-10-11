@@ -328,7 +328,7 @@ export default class TextControlBase extends StandardControlBase {
         return true;
     }
 
-    /** @override @protected */
+    /** @override */
     setupFirstInteraction() {
         // programatik atama etkiler mi native ile dene
         this.inputElement?.addEventListener('input', _e => this.dispatchCustomEvent('first-interaction'), { once: true });

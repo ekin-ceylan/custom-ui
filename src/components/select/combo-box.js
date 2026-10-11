@@ -151,7 +151,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, 
 
     // #endregion LIFECYCLE METHODS
 
-    /** @inheritdoc */
+    /** @override @protected */
     validateNode(node, slotName) {
         if (slotName != 'default') return true;
 

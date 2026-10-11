@@ -20,38 +20,6 @@ class RichTextPopoverFormBase extends LightComponentBase {
     get saveButtonLabel() {
         return this.localeMessages.saveButtonLabel;
     }
-    /** Default label for the image URL input in the popover form */
-    get imageUrlLabel() {
-        return this.localeMessages.imageUrlLabel;
-    }
-    /** Default label for the image alt input in the popover form */
-    get imageAltLabel() {
-        return this.localeMessages.imageAltLabel;
-    }
-    /** Default placeholder for the image alt input in the popover form */
-    get imageAltPlaceholder() {
-        return this.localeMessages.imageAltPlaceholder;
-    }
-    /** Default label for the remove link button in the popover form */
-    get removeLinkButtonLabel() {
-        return this.localeMessages.removeLinkButtonLabel;
-    }
-    /** Default label for the open link in new tab checkbox in the popover form */
-    get openLinkInNewTabLabel() {
-        return this.localeMessages.openLinkInNewTabLabel;
-    }
-    /** Default label for the link URL input in the popover form */
-    get linkUrlLabel() {
-        return this.localeMessages.linkUrlLabel;
-    }
-    /** Default label for the open link in new tab checkbox in the popover form */
-    get linkTextLabel() {
-        return this.localeMessages.linkTextLabel;
-    }
-    /** Default placeholder for the link text input in the popover form */
-    get linkTextPlaceholder() {
-        return this.localeMessages.linkTextPlaceholder;
-    }
 
     /**
      * @returns {RichTextPopoverUrlBox}
@@ -197,8 +165,8 @@ export class RichTextImageForm extends RichTextPopoverFormBase {
 
         return html`
             <form @submit=${this.onSubmit}>
-                <rtp-url-box label=${this.imageUrlLabel} allowed-protocols="http: https:" allow-relative @input=${onInputUrl} required></rtp-url-box>
-                <rtp-text-box label=${this.imageAltLabel} placeholder=${this.imageAltPlaceholder} @input=${onInputAlt}></rtp-text-box>
+                <rtp-url-box label=${this.localeMessages.imageUrlLabel} allowed-protocols="http: https:" allow-relative @input=${onInputUrl} required></rtp-url-box>
+                <rtp-text-box label=${this.localeMessages.imageAltLabel} placeholder=${this.localeMessages.imageAltPlaceholder} @input=${onInputAlt}></rtp-text-box>
 
                 <div>
                     <button type="button" @click=${this.#onCancel}>${this.cancelButtonLabel}</button>
@@ -248,7 +216,7 @@ export class RichTextLinkForm extends RichTextPopoverFormBase {
     /** @returns {import('lit').TemplateResult | typeof nothing} */
     renderRemoveButton() {
         if (this.value.isActive) {
-            return html`<button type="button" @click=${this.#removeLink}>${this.removeLinkButtonLabel}</button>`;
+            return html`<button type="button" @click=${this.#removeLink}>${this.localeMessages.removeLinkButtonLabel}</button>`;
         }
         return nothing;
     }
@@ -257,12 +225,14 @@ export class RichTextLinkForm extends RichTextPopoverFormBase {
         const onInputUrl = event => (this.value.url = event.target.value);
         const onInputText = event => (this.value.text = event.target.value);
         const onInputBlank = event => (this.value.blank = event.target.checked);
+        const newTabLabel = this.localeMessages.openLinkInNewTabLabel;
+        const textPlaceholder = this.localeMessages.linkTextPlaceholder;
 
         return html`
             <form @submit=${this.onSubmit}>
-                <rtp-url-box label=${this.linkUrlLabel} allowed-protocols="http: https: mailto: tel:" allow-relative @input=${onInputUrl} required></rtp-url-box>
-                <rtp-text-box label=${this.linkTextLabel} placeholder=${this.linkTextPlaceholder} @input=${onInputText} ?hidden=${this.value.isBlock}></rtp-text-box>
-                <rtp-checkbox label=${this.openLinkInNewTabLabel} @change=${onInputBlank}>${this.openLinkInNewTabLabel}</rtp-checkbox>
+                <rtp-url-box label=${this.localeMessages.linkUrlLabel} allowed-protocols="http: https: mailto: tel:" allow-relative @input=${onInputUrl} required></rtp-url-box>
+                <rtp-text-box label=${this.localeMessages.linkTextLabel} placeholder=${textPlaceholder} @input=${onInputText} ?hidden=${this.value.isBlock}></rtp-text-box>
+                <rtp-checkbox label=${newTabLabel} @change=${onInputBlank}>${newTabLabel}</rtp-checkbox>
 
                 <div>
                     ${this.renderRemoveButton()}

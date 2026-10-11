@@ -1,17 +1,17 @@
-import WarningField from '../models/WarningField';
-import ListboxItem from '../models/ListboxItem';
+import WarningField from '../models/WarningField.js';
+import ListboxItem from '../models/ListboxItem.js';
 import type { nothing } from 'lit';
 
 /** A generic type that represents any class constructor. */
 export type Constructor<T> = new (...args: any[]) => T;
 
-export interface SlotCollector {
+export declare class SlotCollector {
     /**
      * Binds the collected nodes to their respective slot elements.
      * @param {(HTMLElement|Text)[]} collectedNodes - Collected nodes to bind to slots.
      * @protected
      */
-    bindSlots(collectedNodes: (HTMLElement | Text)[]): void;
+    protected bindSlots(collectedNodes: (HTMLElement | Text)[]): void;
 
     /**
      * A hook that is called after slots have been bound.
@@ -22,7 +22,7 @@ export interface SlotCollector {
      * @param {boolean} hasProjectedContent Indicates if there is projected content in the slots.
      * @protected
      */
-    afterSlotsBinded(hasProjectedContent: boolean): void;
+    protected afterSlotsBinded(hasProjectedContent: boolean): void;
 
     /**
      * A hook that validates nodes for slot binding.
@@ -31,7 +31,7 @@ export interface SlotCollector {
      * @param {string} slotName The name of the slot the node is intended for.
      * @protected
      */
-    validateNode(node: HTMLElement | Text, slotName: string): boolean;
+    protected validateNode(node: HTMLElement | Text, slotName: string): boolean;
 }
 
 export interface PropValidator {
@@ -98,7 +98,7 @@ export interface Listbox {
     renderListBox(): import('lit').TemplateResult | typeof nothing;
 }
 
-export interface MaskPlaceholder {
+export declare class MaskPlaceholder {
     /**
      * Renders the entered-value prefix and unmatched mask suffix.
      * Override to customize the underlay content while retaining its wrapper.
@@ -111,7 +111,7 @@ export interface MaskPlaceholder {
      * @param remainingPlaceholder The mask suffix after the entered value.
      * @protected
      */
-    renderMaskPlaceholderContent(currentValue: string, remainingPlaceholder: string): import('lit').TemplateResult | typeof nothing;
+    protected renderMaskPlaceholderContent(currentValue: string, remainingPlaceholder: string): import('lit').TemplateResult | typeof nothing;
 
     /**
      * Renders the mask as an aria-hidden underlay. Call from a component render
@@ -126,5 +126,5 @@ export interface MaskPlaceholder {
      * @param placeholder The mask pattern.
      * @protected
      */
-    renderMaskPlaceholder(value: string, placeholder: string): import('lit').TemplateResult | typeof nothing;
+    protected renderMaskPlaceholder(value: string, placeholder: string): import('lit').TemplateResult | typeof nothing;
 }

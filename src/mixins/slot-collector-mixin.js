@@ -24,7 +24,7 @@
  * @returns {Constructor<SlotCollector> & TBase}
  */
 export default function SlotCollectorMixin(Base) {
-    return class SlotCollector extends Base {
+    const Mixed = class SlotCollector extends Base {
         #slotNodes = [];
         #isCollected = false;
 
@@ -41,7 +41,7 @@ export default function SlotCollectorMixin(Base) {
 
             if (!this.#isCollected) {
                 this.#isCollected = true;
-                this.#runCollectBindProcess();
+                void this.#runCollectBindProcess();
             }
         }
 
@@ -49,6 +49,7 @@ export default function SlotCollectorMixin(Base) {
          * Binds the collected nodes to their respective slot elements.
          * Removes placeholder slots and replaces them with the collected nodes. If a slot has no collected nodes, it will render its fallback content.
          * @param {(HTMLElement|Text)[]} collectedNodes - Collected nodes to bind to slots.
+         * @protected
          */
         bindSlots(collectedNodes = []) {
             /** @type {Map<string, (Element|Text)[]>} */
@@ -97,12 +98,16 @@ export default function SlotCollectorMixin(Base) {
          * @param {HTMLElement|Text} node
          * @param {String} slotName
          * @returns {Boolean}
+         * @protected
          */
         validateNode(node, slotName) {
             return true;
         }
 
-        /** Called after slots have been bound. */
+        /**
+         * Called after slots have been bound.
+         * @protected
+         */
         afterSlotsBinded(hasProjectedContent) {
             // Hook for child classes.
         }
@@ -189,6 +194,8 @@ export default function SlotCollectorMixin(Base) {
             this.#hiddenByCollector = new Set();
         }
     };
+
+    return /** @type {Constructor<SlotCollector> & TBase} */ (/** @type {unknown} */ (Mixed));
 }
 
 const SLOT_TAG_NAME = 'slot';

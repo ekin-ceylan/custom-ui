@@ -105,6 +105,7 @@ export default class RichTextEditor extends RichTextEditorBase {
         return false;
     }
 
+    /** @override */
     setupFirstInteraction() {
         this.addEventListener('input', _e => this.dispatchCustomEvent('first-interaction'), { once: true });
     }
