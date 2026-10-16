@@ -1,3 +1,4 @@
+import { html } from 'lit';
 import LightComponentBase from '../../base/light-component-base.js';
 
 export default class CustomOption extends LightComponentBase {
@@ -30,5 +31,9 @@ export default class CustomOption extends LightComponentBase {
         this.disabled = false;
         /** @type {boolean} */
         this.hidden = false;
+    }
+
+    render() {
+        return html`<slot></slot>`;
     }
 }

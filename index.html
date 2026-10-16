@@ -5,7 +5,7 @@
 
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet" href="./src/styles/check-box.css" />
+        <!-- <link rel="stylesheet" href="./src/styles/check-box.css" /> -->
         <link rel="stylesheet" href="./src/styles/input.css" />
         <link rel="stylesheet" href="./src/styles/links.css" />
         <link rel="stylesheet" href="./src/styles/select.css" />
@@ -15,20 +15,31 @@
         <link rel="stylesheet" href="./src/styles/paginations.css" />
         <link rel="stylesheet" href="./src/styles/dialog.css" />
         <title>Custom Textbox Test</title>
+        <style>
+            #test:user-invalid {
+                border: 2px solid red;
+            }
+            #native:user-invalid {
+                border: 2px solid red;
+            }
+        </style>
     </head>
 
     <body>
         <form id="form-1" oninvalid="invalid(event)">
-<text-area id="textarea" label="tekstarea" required><b>Hi</b></text-area>
+            <text-area id="textarea" label="tekstarea" required>
+                <b>Hi</b>
+                <span slot="description">This is a description for the textarea.</span>
+            </text-area>
             <br />
             <br />
             <plate-box label="Plaka Numarası" value="55  ty" required></plate-box>
             <br />
-<br />
+            <br />
             <input id="test" type="text" value="tr" pattern="\d+" required />
             <br />
             <typed-pagination current-page="11" page-count="20" sibling-count="3" aria-label="Pagination"></typed-pagination>
-            <combo-box label="Kombo Native" field-id="combo-country-native" native-behavior placeholder="Seçiniz" value="de">
+            <combo-box label="Kombo Native" native-behavior placeholder="Seçiniz" value="de">
                 <option value="tr">
                     <img src="https://flagcdn.com/tr.svg" alt="Turkey Flag" width="20" height="15" style="vertical-align: middle; margin-right: 5px" />
                     Türkiye
@@ -48,7 +59,7 @@
             </combo-box>
             <br />
             <br />
-            <combo-box label="Kombo" field-id="combo-country" placeholder="Seçiniz" value="xx" clearable required>
+            <combo-box label="Kombo" placeholder="Seçiniz" value="xx" clearable required>
                 <template slot="no-options">Kayıtsız</template>
                 <option value="tr">
                     <img src="https://flagcdn.com/tr.svg" alt="Turkey Flag" width="20" height="15" style="vertical-align: middle; margin-right: 5px" />
@@ -69,37 +80,58 @@
             </combo-box>
             <br />
             <br />
-            <tc-box id="tc-digits" field-id="tc-number" label="Kimlik Numarası" value="324" placeholder="Kimlik Numaranızı giriniz"></tc-box>
+            <combo-box label="Kombo Search" placeholder="Seçiniz" value="kp" filter-required filter-threshold="2" required>
+                <template slot="no-options">Kayıtsız</template>
+                <option value="tr">
+                    <img src="https://flagcdn.com/tr.svg" alt="Turkey Flag" width="20" height="15" style="vertical-align: middle; margin-right: 5px" />
+                    Türkiye
+                </option>
+                <option value="de">
+                    <img src="https://flagcdn.com/de.svg" alt="Germany Flag" width="20" height="15" style="vertical-align: middle; margin-right: 5px" />
+                    Almanya
+                </option>
+                <option value="us">
+                    <img src="https://flagcdn.com/us.svg" alt="USA Flag" width="20" height="15" style="vertical-align: middle; margin-right: 5px" />
+                    ABD
+                </option>
+                <option value="ch" disabled>Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti</option>
+                <option value="kp">Kuzey Kore</option>
+                <option value="jp">Japonya</option>
+                <option value="it">İtalya</option>
+            </combo-box>
             <br />
             <br />
-            <text-box field-id="name" hide-label maxlength="100" label="İsim" minlength="2" pattern="[a-zA-ZçÇğĞıİöÖşŞüÜâÂîÎ \-]+" value="tr" placeholder="Yaz..."></text-box>
+            <tc-box label="Kimlik Numarası" value="324" placeholder="Kimlik Numaranızı giriniz"></tc-box>
             <br />
             <br />
-            <text-box field-id="first-name" placeholder="Type something..." minlength="20" onchange="test(event)" value="5" required label="First Name"></text-box>
+            <text-box hide-label maxlength="100" label="İsim" minlength="2" pattern="[a-zA-ZçÇğĞıİöÖşŞüÜâÂîÎ \-]+" value="tr" placeholder="Yaz..."></text-box>
             <br />
             <br />
-            <text-box field-id="test-name" label="Test Name" required minlength="3" maxlength="5"></text-box>
+            <text-box placeholder="Type something..." minlength="20" onchange="test(event)" value="5" required label="First Name"></text-box>
             <br />
             <br />
-            <phone-box field-id="phone-number" label="Phone Number" value="(0212)" required></phone-box>
+            <text-box label="Test Name" required minlength="3" maxlength="5"></text-box>
             <br />
             <br />
-            <email-box field-id="email" label="E-Posta Adresi" minlength="20" required></email-box>
+            <phone-box label="Phone Number" value="(0212)" required></phone-box>
             <br />
             <br />
-            <integer-box field-id="age" label="Yaş" placeholder="Yaşınızı giriniz" required></integer-box>
+            <email-box label="E-Posta Adresi" minlength="20" required></email-box>
             <br />
             <br />
-            <new-password-box field-id="new-password" label="Yeni Şifre" placeholder="Şifrenizi giriniz" minlength="8" required></new-password-box>
+            <integer-box label="Yaş" placeholder="Yaşınızı giriniz" required></integer-box>
             <br />
             <br />
-            <confirm-password-box field-id="confirm-password" match="#new-password" label="Şifre Tekrar" placeholder="Şifrenizi giriniz" required></confirm-password-box>
+            <new-password-box label="Yeni Şifre" placeholder="Şifrenizi giriniz" minlength="8" required></new-password-box>
             <br />
             <br />
-            <password-box field-id="password" label="Şifre" placeholder="Şifrenizi giriniz" minlength="8" required></password-box>
+            <confirm-password-box match="#new-password" label="Şifre Tekrar" placeholder="Şifrenizi giriniz" required></confirm-password-box>
             <br />
             <br />
-            <check-box field-id="cekbaks" label="Kvkk Onayı" readonly required>Okudum, onaylıyorum <span>!</span> </check-box>
+            <password-box label="Şifre" placeholder="Şifrenizi giriniz" minlength="8" required></password-box>
+            <br />
+            <br />
+            <check-box label="Kvkk Onayı" readonly required>Okudum, onaylıyorum <span>!</span> </check-box>
             <br />
             <br />
             <lit-checkbox-host></lit-checkbox-host>
@@ -108,7 +140,7 @@
             <url-link href="https://www.test.com" target="_blank" aria-label="Example Link">Example Link</url-link>
             <br />
             <br />
-            <select-box field-id="country" label="Ülke" placeholder="Seçiniz" clearable required>
+            <select-box label="Ülke" placeholder="Seçiniz" clearable required>
                 <option value="tr">Türkiye</option>
                 <option value="de">Almanya</option>
                 <option value="us">ABD</option>
@@ -116,7 +148,7 @@
             </select-box>
             <br />
             <br />
-            <select-box field-id="custom-option" label="Custom Option" placeholder="Seçiniz" clearable required>
+            <select-box id="custom-option" label="Custom Option" value="us" placeholder="Seçiniz" clearable required>
                 <custom-option value="tr">Türkiye</custom-option>
                 <custom-option value="de">Almanya</custom-option>
                 <custom-option value="us">ABD</custom-option>
@@ -124,7 +156,7 @@
             </select-box>
             <br />
             <br />
-            <select-box field-id="country-selected" label="Ülke Selected" value="tr" placeholder="Seçiniz" required>
+            <select-box label="Ülke Selected" value="tr" placeholder="Seçiniz" required>
                 <option value="tr">Türkiye</option>
                 <option value="de" data-tracking-id="5" data-test="" aria-test="alm">Almanya</option>
                 <option value="us" label="Amerika">ABD</option>
@@ -132,14 +164,14 @@
             </select-box>
             <br />
             <br />
-            <select-box field-id="select-dynamic" id="sb-dynamic" label="Dinamik" no-options-label="Kayıtsız" placeholder="Dinamik Seçiniz"> </select-box>
+            <select-box id="sb-dynamic" label="Dinamik" no-options-label="Kayıtsız" value="Z" placeholder="Dinamik Seçiniz"> </select-box>
             <br />
             <br />
             <label for="native">Native Select</label><br />
-            <select placeholder="Seçiniz" id="native" required>
-                <option value="" selected>Lütfen Seçiniz</option>
+            <select placeholder="Seçiniz" id="native" onchange="change(event)" required>
+                <option value="">Lütfen Seçiniz</option>
                 <option value="tr">Türkiye</option>
-                <option value="de">Almanya</option>
+                <option value="de" selected>Almanya</option>
                 <option value="us">ABD</option>
                 <option value="ch" disabled>Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti</option>
                 <option value="kp">Kuzey Kore</option>
@@ -148,7 +180,7 @@
             </select>
             <br />
             <br />
-            <select-box name="cars" field-id="cars" label="test">
+            <select-box label="test" placeholder="Seçiniz">
                 <optgroup label="Swedish Cars">
                     <option value="volvo" selected>Volvo</option>
                     <option value="saab">Saab</option>
@@ -174,12 +206,13 @@
             </select-box>
             <br />
             <br />
-            <range-select field-id="range" label="Range" min="0" max="100" step="20" required></range-select>
+            <range-select label="Range" min="0" max="100" step="20" required></range-select>
             <br />
             <br />
             <input type="text" id="normal-input" required />
             <br />
             <br />
+            <button type="reset">Reset</button>
             <button type="submit">Submit</button>
         </form>
         <modal-dialog id="my-modal" esc-close backdrop-close>
@@ -196,7 +229,7 @@
             </select>
             <br />
             <br />
-            <select-box field-id="country-selected-modal" label="Ülke Selected" value="tr" placeholder="Seçiniz" required>
+            <select-box label="Ülke Selected" value="tr" placeholder="Seçiniz" required>
                 <option value="tr">Türkiye</option>
                 <option value="de">Almanya</option>
                 <option value="us">ABD</option>
@@ -215,6 +248,7 @@
             // Dinamik attr set
             setTimeout(() => {
                 const el = document.getElementById('sb-dynamic');
+                console.log('1');
                 el.options = ['X', 'Y', 'Z'];
                 // el.options = [
                 //     { value: 'x', label: 'X' },
@@ -252,7 +286,7 @@
 
                 render() {
                     return html`
-                        <check-box field-id="subscribe-dyn" label="Kvkk Onayı" ?required=${this.required} ?checked=${this.checked}>
+                        <check-box label="Kvkk Onayı" ?required=${this.required} ?checked=${this.checked}>
                             <span>${this.description}</span>
                         </check-box>
                     `;
@@ -263,6 +297,9 @@
         </script>
         <script type="module" src="./src/main.js"></script>
         <script>
+            function change(e) {
+                console.log('change', e.target.value);
+            }
             // const userInput = document.getElementById('userText');
             // const logElement = document.getElementById('log');
 

@@ -1,5 +1,8 @@
 import { LitElement } from 'lit';
 import { getMessages } from '../i18n/locale.js';
+import { mixins } from '../modules/mixin-utils.js';
+import PropValidatorMixin from '../mixins/prop-validator-mixin.js';
+import SlotCollectorMixin from '../mixins/slot-collector-mixin.js';
 
 /**
  * @typedef {keyof import('../i18n/types').LocaleRegistry} LocaleKey
@@ -14,19 +17,9 @@ import { getMessages } from '../i18n/locale.js';
  * - Because it extends `LitElement`, instances have `updateComplete`, `requestUpdate`, etc.
  * - `createRenderRoot()` returns `this`, so styles and DOM are not encapsulated.
  * @abstract Not intended to be used directly in component definitions (for example, with customElements.define). Extend this class to create concrete components.
- * @extends {LitElement}
  */
-export default class LightComponentBase extends LitElement {
+export default class LightComponentBase extends mixins(LitElement, SlotCollectorMixin, PropValidatorMixin) {
     #lang = null;
-
-    /**
-     * Stable component identifier for logs/errors (minify-safe).
-     * Falls back to `constructor.name` when not connected/upgraded.
-     * @returns {string}
-     */
-    get componentName() {
-        return this.localName || (this.tagName ? this.tagName.toLowerCase() : '') || this.constructor.name;
-    }
 
     /**
      * Current locale of the component, derived from the closest ancestor with a `lang` attribute. Updates automatically on `locale-change` events.

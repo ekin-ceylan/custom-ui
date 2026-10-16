@@ -23,6 +23,8 @@ import TcBox from './components/text-input/tc-box.js';
 import TableComponent from './components/table/table.js';
 import Pagination from './components/table/pagination.js';
 
+import ControllerTest from './components/controller-test.js';
+
 defineComponent('typed-table', TableComponent);
 defineComponent('typed-pagination', Pagination);
 
@@ -47,3 +49,4 @@ defineComponent('look-up', Lookup);
 defineComponent('tc-box', TcBox);
 defineComponent('rich-text-editor', RichTextEditor);
 defineComponent('text-area', TextArea);
+defineComponent('controller-test', ControllerTest);

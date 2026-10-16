@@ -36,6 +36,12 @@ export declare class SlotCollector {
 
 export interface PropValidator {
     /**
+     * Stable component identifier for logs/errors (minify-safe).
+     * Falls back to `constructor.name` when not connected/upgraded.
+     */
+    get componentName(): string;
+
+    /**
      * Gets the list of required field names.
      * Subclasses should override this to specify fields that must be set.
      * Throws an error if any required field is empty when validation runs.

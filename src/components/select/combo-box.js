@@ -6,7 +6,6 @@ import Keys from '../../enums/Keys.js';
 import { generateUniqueId } from '../../modules/unique-id-generator.js';
 import { mixins } from '../../modules/mixin-utils.js';
 import StandardControlBase from '../../base/standard-control-base.js';
-import SlotCollectorMixin from '../../mixins/slot-collector-mixin.js';
 import ListboxMixin from '../../mixins/listbox-mixin.js';
 
 /**
@@ -16,7 +15,7 @@ import ListboxMixin from '../../mixins/listbox-mixin.js';
  * - The `value` property reflects the currently selected option's value, and the `selectedOption` property provides the full option object.
  * - The component includes built-in filtering functionality, allowing users to search through options by typing in the input field.
  */
-export default class ComboBox extends mixins(StandardControlBase, ListboxMixin, SlotCollectorMixin) {
+export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {

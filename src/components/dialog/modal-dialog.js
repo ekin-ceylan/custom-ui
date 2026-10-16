@@ -1,13 +1,11 @@
 import { html, nothing } from 'lit';
-import SlotCollectorMixin from '../../mixins/slot-collector-mixin.js';
 import LightComponentBase from '../../base/light-component-base.js';
 import { hideBodyScroll, showBodyScroll } from '../../modules/scroll-lock-helper.js';
-import { mixins } from '../../modules/mixin-utils.js';
 import Keys from '../../enums/Keys.js';
 import { spread } from '../../modules/spread.js';
 
 /**
- * Custom modal dialog component that extends LightComponentBase and uses SlotCollectorMixin to manage its content. It provides features such as backdrop click to close, Escape key to close, and customizable header and footer rendering.
+ * Custom modal dialog component that extends LightComponentBase. It provides features such as backdrop click to close, Escape key to close, and customizable header and footer rendering.
  * - Can be used after defining like `defineElement('modal-dialog', ModalDialog)` or `customElement.define('modal-dialog', ModalDialog)`.
  * - For defining a close button, use `data-role="close"` attribute on the button element. The default implementation provides a close button in the header.
  * - Can be added any attributes to the `<dialog>` element using `dialog:<attr>=<value>` way.
@@ -23,8 +21,9 @@ import { spread } from '../../modules/spread.js';
  *     <button slot="footer" ⁣@click="this.hide()">Close</button>
  * </modal-dialog>
  * ```
+ * @extends {LightComponentBase}
  */
-export default class ModalDialog extends mixins(LightComponentBase, SlotCollectorMixin) {
+export default class ModalDialog extends LightComponentBase {
     // #region FIELDS
 
     /**

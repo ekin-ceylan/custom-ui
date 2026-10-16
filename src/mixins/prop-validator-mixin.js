@@ -2,7 +2,7 @@ import WarningField from '../models/WarningField.js';
 import { isEmpty } from '../modules/utilities.js';
 
 /**
- * @typedef {import('../base/light-component-base.js').default} LightComponentBase
+ * @typedef {import('lit').LitElement} LitElement
  */
 
 /**
@@ -19,15 +19,24 @@ import { isEmpty } from '../modules/utilities.js';
  * - Components can specify required fields by overriding the `requiredFields` getter, which should return an array of property names that must be set. If any of these fields are empty when the component is connected to the DOM, an error will be thrown.
  * - Components can specify warning fields by overriding the `warningFields` getter, which should return an array of configurations. Each configuration includes a list of fields and a message. If all fields in a configuration are empty or false, a console warning will be logged with the provided message.
  * - Validation runs when the component is connected to the DOM and also when properties are updated (only for relevant fields).
- * - **Constraint:** Can only be applied to classes extending `LightComponentBase` (ensures LitElement APIs like `updateComplete` / `requestUpdate` exist).
+ * - **Constraint:** Can only be applied to classes extending `LitElement` (ensures LitElement APIs like `updateComplete` / `requestUpdate` exist).
  *
- * @template {Constructor<LightComponentBase>} TBase
+ * @template {Constructor<LitElement>} TBase
  * @param {TBase} Base - The base class to extend
  * @category mixins
  * @returns {TBase & Constructor<PropValidator>}
  */
 export default function PropValidatorMixin(Base) {
     return class PropValidator extends Base {
+        /**
+         * Stable component identifier for logs/errors (minify-safe).
+         * Falls back to `constructor.name` when not connected/upgraded.
+         * @returns {string}
+         */
+        get componentName() {
+            return this.localName || (this.tagName ? this.tagName.toLowerCase() : '') || this.constructor.name;
+        }
+
         /**
          * Gets the list of required field names.
          * Subclasses should override this to specify fields that must be set.
@@ -122,3 +131,5 @@ export default function PropValidatorMixin(Base) {
         }
     };
 }
+
+// field, condition, message, warntype

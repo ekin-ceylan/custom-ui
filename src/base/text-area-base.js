@@ -1,19 +1,17 @@
 import { html, nothing } from 'lit';
 import StandardControlBase from '../base/standard-control-base.js';
-import SlotCollectorMixin from '../mixins/slot-collector-mixin.js';
-import { mixins } from '../modules/mixin-utils.js';
 import { isEmpty } from '../modules/utilities.js';
 
 /**
  * Base class for text area components. Provides common functionality for multi-line text input components.
- * - Extends `StandardControlBase` and mixes in `SlotCollectorMixin`.
+ * - Extends `StandardControlBase`
  * - Handles properties like `maxlength`, `minlength`, `rows`, `cols`, and `wrap`.
  * - Provides methods for validation, rendering adornments, counters, and descriptions.
  * @abstract Not intended to be used directly in component definitions (for example, with customElements.define). Extend this class to create concrete components.
- * @mixes SlotCollectorMixin
  * @category base
+ * @extends {StandardControlBase}
  */
-export default class TextAreaBase extends mixins(StandardControlBase, SlotCollectorMixin) {
+export default class TextAreaBase extends StandardControlBase {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {

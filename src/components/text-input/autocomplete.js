@@ -1,6 +1,5 @@
 import { html, nothing } from 'lit';
 import TextControlBase from '../../base/text-control-base.js';
-import SlotCollectorMixin from '../../mixins/slot-collector-mixin.js';
 import ListboxMixin from '../../mixins/listbox-mixin.js';
 import Suggestion from '../../models/Suggestion.js';
 import SuggestionOption from '../parts/suggestion-option.js';
@@ -10,7 +9,7 @@ import { mixins } from '../../modules/mixin-utils.js';
 import { generateUniqueId } from '../../modules/unique-id-generator.js';
 import MaskPlaceholderMixin from '../../mixins/mask-placeholder-mixin.js';
 
-export default class Autocomplete extends mixins(TextControlBase, SlotCollectorMixin, ListboxMixin, MaskPlaceholderMixin) {
+export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, MaskPlaceholderMixin) {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {

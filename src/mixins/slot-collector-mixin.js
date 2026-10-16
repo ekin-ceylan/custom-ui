@@ -1,5 +1,5 @@
 /**
- * @typedef {import('../base/light-component-base.js').default} LightComponentBase
+ * @typedef {import('lit').LitElement} LitElement
  */
 
 /**
@@ -16,9 +16,9 @@
  * - Collects child nodes when the component is connected to the DOM and binds them to slots defined in the template like `<slot name="...">`.
  * - Provides a `validateNode` method that can be overridden to filter out nodes that should not be included in the slots.
  * - After binding slots, it calls `afterSlotsBinded()` which can be used for any post-processing.
- * - **Constraint:** Can only be applied to classes extending `LightComponentBase` (ensures LitElement APIs like `updateComplete` / `requestUpdate` exist).
+ * - **Constraint:** Can only be applied to classes extending `LitElement` (ensures LitElement APIs like `updateComplete` / `requestUpdate` exist).
  *
- * @template {Constructor<LightComponentBase>} TBase
+ * @template {Constructor<LitElement>} TBase
  * @param {TBase} Base - The base class to extend
  * @category mixins
  * @returns {Constructor<SlotCollector> & TBase}
@@ -26,6 +26,7 @@
 export default function SlotCollectorMixin(Base) {
     const Mixed = class SlotCollector extends Base {
         #slotNodes = [];
+        #isBound = false;
         #isCollected = false;
 
         /** @type {Set<Element>} */
@@ -34,6 +35,42 @@ export default function SlotCollectorMixin(Base) {
         constructor(...args) {
             super(...args);
             this.#collectSlots(); // başlangıçta DOM'a bağlıysa çalışır
+        }
+
+        get textContent() {
+            if (this.#isBound || this.#slotNodes.length === 0) {
+                return super.textContent;
+            }
+
+            return this.#slotNodes.map(node => node.textContent ?? '').join('');
+        }
+
+        set textContent(value) {
+            super.textContent = value;
+        }
+
+        get innerHTML() {
+            if (this.#isBound || this.#slotNodes.length === 0) {
+                return super.innerHTML;
+            }
+
+            const container = document.createElement('div');
+
+            for (const node of this.#slotNodes) {
+                const clone = node.cloneNode(true);
+
+                if (clone instanceof Element && this.#hiddenByCollector.has(node)) {
+                    clone.removeAttribute('hidden');
+                }
+
+                container.appendChild(clone);
+            }
+
+            return container.innerHTML;
+        }
+
+        set innerHTML(value) {
+            super.innerHTML = value;
         }
 
         connectedCallback() {
@@ -161,11 +198,12 @@ export default function SlotCollectorMixin(Base) {
             await this.updateComplete;
             this.#detachHiddenNodes();
             this.bindSlots(this.#slotNodes); // Tüm slot placeholder'larını bul
+            this.#isBound = true;
             this.afterSlotsBinded(this.#slotNodes?.length > 0);
         }
 
         #collectSlots() {
-            if (this.#slotNodes.length > 0) return;
+            if (this.#slotNodes.length > 0 || !this.hasChildNodes()) return;
 
             const slots = Array.from(this.childNodes).filter(node => {
                 const isTextNode = node.nodeType === Node.TEXT_NODE;

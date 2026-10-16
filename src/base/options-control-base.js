@@ -1,7 +1,5 @@
 import { nothing } from 'lit';
 import { chevronDown } from '../modules/icons.js';
-import SlotCollectorMixin from '../mixins/slot-collector-mixin.js';
-import { mixins } from '../modules/mixin-utils.js';
 import StandardControlBase from './standard-control-base.js';
 
 /**
@@ -14,8 +12,9 @@ import StandardControlBase from './standard-control-base.js';
  * Base class for form controls that have options, such as ... .
  * Extends `StandardControlBase` to inherit common form control functionality.
  * @abstract Not intended to be used directly in component definitions. Extend this class to create concrete components.
+ * @extends {StandardControlBase}
  */
-export default class OptionsControlBase extends mixins(StandardControlBase, SlotCollectorMixin) {
+export default class OptionsControlBase extends StandardControlBase {
     // #region STATICS, FIELDS, GETTERS
 
     static get properties() {

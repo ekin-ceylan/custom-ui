@@ -7,6 +7,10 @@ export { spread } from '../modules/spread.js';
 export { getLocale, setLocale, configure, registerLocale, getMessages, getMessage } from '../i18n/locale.js';
 export { renderIcon } from '../modules/icons.js';
 
+// Controllers
+export { default as TextBoxController } from '../controllers/text-box-controller.js';
+export { default as CheckBoxController } from '../controllers/check-box-controller.js';
+
 // Constants
 export { default as Keys } from '../enums/Keys.js';
 
@@ -23,8 +27,6 @@ export { default as TextControlBase } from '../base/text-control-base.js';
 export { default as TextAreaBase } from '../base/text-area-base.js';
 
 // Mixins
-export { default as SlotCollectorMixin } from '../mixins/slot-collector-mixin.js';
-export { default as PropValidatorMixin } from '../mixins/prop-validator-mixin.js';
 export { default as ListboxMixin } from '../mixins/listbox-mixin.js';
 export { default as MaskPlaceholderMixin } from '../mixins/mask-placeholder-mixin.js';
 
@@ -32,7 +34,7 @@ export { default as MaskPlaceholderMixin } from '../mixins/mask-placeholder-mixi
 export { default as TextBox } from '../components/text-input/text-box.js';
 export { default as TcBox } from '../components/text-input/tc-box.js';
 export { default as PlateBox } from '../components/text-input/plate-box.js';
-export { default as PhoneBox } from '../components/text-input/phone-box.js';
+// export { default as PhoneBox } from '../components/text-input/phone-box.js';
 export { default as EmailBox } from '../components/text-input/email-box.js';
 export { default as PasswordBox } from '../components/text-input/password-box.js';
 export { default as ConfirmPasswordBox } from '../components/text-input/confirm-password-box.js';

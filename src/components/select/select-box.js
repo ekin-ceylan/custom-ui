@@ -276,7 +276,7 @@ this.#syncValueAfterOptionsChange();
         if (selected) {
             this.value = selected.value;
         } else if (this.#valueList.includes(this.value)) {
-            this.updateComplete.then(() => (this.inputElement.value = this.value));
+            void this.updateComplete.then(() => (this.inputElement.value = this.value));
         } else {
             this.value = '';
             this.inputElement.value = this.value;
