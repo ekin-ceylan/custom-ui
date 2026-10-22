@@ -1,5 +1,6 @@
 import RichTextEditor from '../../addons/rich-text/rich-text-editor.js';
 import { Editor } from '@tiptap/core';
+import { unlockAllScrolls } from 'custom-ui';
 
 defineElement('rich-text-editor', RichTextEditor);
 
@@ -415,6 +416,7 @@ describe('Rich text editor - Form Integration', () => {
 
 describe('Rich text editor - Links', () => {
     afterEach(() => {
+        document.querySelectorAll('rt-link-form, rt-image-form').forEach(form => unlockAllScrolls(form));
         document.body.innerHTML = '';
     });
 
@@ -660,6 +662,7 @@ describe('Rich text editor - Links', () => {
 
 describe('Rich text editor - Images', () => {
     afterEach(() => {
+        document.querySelectorAll('rt-link-form, rt-image-form').forEach(form => unlockAllScrolls(form));
         document.body.innerHTML = '';
     });
 
@@ -711,6 +714,102 @@ describe('Rich text editor - Images', () => {
         expect(fixture.querySelector('[data-role="editor"] img')?.getAttribute('src')).toBe('https://example.com/image.png');
     });
 
+    it('IMG-005 selects an image and prefills its popover fields', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        await submitImageForm(fixture, { url: '/image.png', alt: 'Existing image' });
+
+        await fixture.user.click(fixture.querySelector('[data-role="editor"] img'));
+        await fixture.user.click(fixture.querySelector('button[data-command="image"]'));
+        const form = fixture.querySelector('rt-image-form');
+        await form.updateComplete;
+
+        expect(form.urlInput.inputElement.value).toBe('/image.png');
+        expect(form.textInput.inputElement.value).toBe('Existing image');
+    });
+
+    it('IMG-006 deletes a selected image with Backspace', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        await submitImageForm(fixture, { url: '/image.png', alt: 'Example' });
+
+        await fixture.user.click(fixture.querySelector('[data-role="editor"] img'));
+        await fixture.user.keyboard('{Backspace}');
+        await fixture.host.updateComplete;
+
+        expect(fixture.querySelector('[data-role="editor"] img')).toBeNull();
+        expect(fixture.host.value).not.toContain('<img');
+    });
+
+    it('IMG-007 undoes and redoes image insertion', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        await submitImageForm(fixture, { url: '/image.png', alt: 'Example' });
+
+        await fixture.user.click(fixture.querySelector('button[data-command="undo"]'));
+        await fixture.host.updateComplete;
+        expect(fixture.querySelector('[data-role="editor"] img')).toBeNull();
+
+        await fixture.user.click(fixture.querySelector('button[data-command="redo"]'));
+        await fixture.host.updateComplete;
+        expect(fixture.querySelector('[data-role="editor"] img')?.getAttribute('alt')).toBe('Example');
+        expect(fixture.host.value).toContain('src="/image.png"');
+    });
+
+    it('IMG-008 remains editable after an image fails to load', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        await submitImageForm(fixture, { url: '/__missing_rich_text_test_image__.png', alt: 'Missing' });
+        const image = fixture.querySelector('[data-role="editor"] img');
+        await expect.poll(() => image.complete).toBe(true);
+        expect(image.naturalWidth).toBe(0);
+
+        await fixture.user.click(image);
+        await fixture.user.keyboard('{Backspace}');
+        await fixture.user.type(getEditorElement(fixture), 'Still editable');
+        await fixture.host.updateComplete;
+
+        expect(getEditorElement(fixture).textContent).toBe('Still editable');
+        expect(fixture.host.value).toContain('Still editable');
+    });
+
+    it.each([
+        ['IMG-013', 'ArrowLeft', 'Before'],
+        ['IMG-014', 'ArrowRight', 'After'],
+    ])('%s places the cursor beside an image using %s', async (_id, arrow, text) => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        await submitImageForm(fixture, { url: '/image.png', alt: 'Example' });
+        await fixture.user.click(fixture.querySelector('[data-role="editor"] img'));
+        await fixture.user.keyboard(`{${arrow}}`);
+        await fixture.user.keyboard(text);
+        await fixture.host.updateComplete;
+
+        expect(fixture.querySelector('[data-role="editor"] img')).not.toBeNull();
+        const imageIndex = fixture.host.value.indexOf('<img');
+        const textIndex = fixture.host.value.indexOf(text);
+        expect(textIndex).toBeGreaterThanOrEqual(0);
+        if (arrow === 'ArrowLeft') expect(textIndex).toBeLessThan(imageIndex);
+        else expect(textIndex).toBeGreaterThan(imageIndex);
+    });
+
+    it.each([
+        ['IMG-009', ''],
+        ['IMG-010', 'ftp://example.com/image.png'],
+        ['IMG-010', 'javascript:alert(1)'],
+    ])('%s rejects image popover URL %j without changing editor content', async (_id, url) => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        fixture.host.value = '<p>Keep this content</p>';
+        await fixture.host.updateComplete;
+        await fixture.user.click(fixture.querySelector('button[data-command="image"]'));
+        const form = fixture.querySelector('rt-image-form');
+        await form.updateComplete;
+        if (url) await fixture.user.type(form.urlInput.inputElement, url);
+
+        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+        await fixture.host.updateComplete;
+
+        expect(form.matches(':popover-open')).toBe(true);
+        expect(form.urlInput.inputElement.checkValidity()).toBe(false);
+        expect(fixture.host.value).toBe('<p>Keep this content</p>');
+        expect(fixture.querySelector('[data-role="editor"] img')).toBeNull();
+    });
+
     it('IMG-011 rejects Base64 images while parsing HTML', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
 
@@ -719,6 +818,253 @@ describe('Rich text editor - Images', () => {
 
         expect(fixture.host.value).toBe('');
         expect(getEditorElement(fixture).textContent).toBe('');
+    });
+});
+
+describe.each([
+    ['link', 'rt-link-form'],
+    ['image', 'rt-image-form'],
+])('Rich text editor - %s popover integration', (command, selector) => {
+    afterEach(() => {
+        document.querySelectorAll('rt-link-form, rt-image-form').forEach(form => unlockAllScrolls(form));
+        document.body.innerHTML = '';
+    });
+
+    const openForm = async fixture => {
+        await fixture.user.click(fixture.querySelector(`button[data-command="${command}"]`));
+        const form = fixture.querySelector(selector);
+        await form.updateComplete;
+        await expect.poll(() => form.matches(':popover-open')).toBe(true);
+        return form;
+    };
+
+    it('POP-001 keeps outer form submission independent of empty required popup fields', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" name="description"></rich-text-editor>');
+        fixture.host.value = '<p>Outer form content</p>';
+        await fixture.host.updateComplete;
+        let submits = 0;
+        fixture.form.addEventListener('submit', event => {
+            event.preventDefault();
+            submits++;
+        });
+
+        const form = fixture.querySelector(selector);
+        expect(form.urlInput.inputElement.form).toBe(form.formElement);
+        expect(fixture.form.checkValidity()).toBe(true);
+        await fixture.user.click(fixture.submit);
+
+        expect(submits).toBe(1);
+        expect(new FormData(fixture.form).get('description')).toBe('<p>Outer form content</p>');
+    });
+
+    it('POP-002 does not emit editor input events while editing popup fields', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        const form = await openForm(fixture);
+        let inputs = 0;
+        fixture.host.addEventListener('input', () => inputs++);
+
+        await fixture.user.type(form.urlInput.inputElement, '/example');
+
+        expect(fixture.host.value).toBe('');
+        expect(inputs).toBe(0);
+    });
+
+    it('POP-013 submits with one editor input event and without submitting the outer form', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        const form = await openForm(fixture);
+        await fixture.user.click(form.urlInput.inputElement);
+        await fixture.user.type(form.urlInput.inputElement, '/example');
+
+        let inputs = 0;
+        let submits = 0;
+        fixture.host.addEventListener('input', () => inputs++);
+        fixture.form.addEventListener('submit', event => {
+            event.preventDefault();
+            submits++;
+        });
+
+        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+        await fixture.host.updateComplete;
+
+        expect(submits).toBe(0);
+        expect(inputs).toBe(1);
+        expect(fixture.host.value).toContain(command === 'link' ? 'href="/example"' : 'src="/example"');
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+    });
+
+    it('POP-003 cancels without modifying content and clears fields when reopened', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        const form = await openForm(fixture);
+        await fixture.user.click(form.urlInput.inputElement);
+        await fixture.user.type(form.urlInput.inputElement, '/discard');
+        await fixture.user.type(form.textInput.inputElement, 'Discard text');
+        await fixture.user.click(form.formElement.querySelector('button[type="button"]'));
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+
+        expect(fixture.host.value).toBe('');
+        await openForm(fixture);
+        expect(form.urlInput.inputElement.value).toBe('');
+        expect(form.textInput.inputElement.value).toBe('');
+        expect(form.urlInput.invalid).toBe(false);
+    });
+
+    it('POP-014 rejects an empty URL and allows saving after correction', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        const form = await openForm(fixture);
+        const save = form.formElement.querySelector('button[type="submit"]');
+
+        await fixture.user.click(save);
+
+        expect(form.matches(':popover-open')).toBe(true);
+        expect(fixture.host.value).toBe('');
+        await expect.poll(() => form.urlInput.invalid).toBe(true);
+        expect(form.urlInput.validationMessage).not.toBe('');
+        await form.urlInput.updateComplete;
+        expect(form.urlInput.querySelector('[data-role="error-message"]')?.textContent.trim()).toBeTruthy();
+
+        await fixture.user.type(form.urlInput.inputElement, '/corrected');
+        expect(form.urlInput.inputElement.value).toBe('/corrected');
+        expect(fixture.host.value).toBe('');
+        await fixture.user.click(save);
+
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+        expect(fixture.host.value).toContain(command === 'link' ? 'href="/corrected"' : 'src="/corrected"');
+    });
+
+    it('POP-015 clears a validation error and discarded fields after cancel and reopen', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Keep this</p>"></rich-text-editor>');
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        const originalValue = fixture.host.value;
+        const form = await openForm(fixture);
+        await fixture.user.type(form.textInput.inputElement, 'Discard this');
+        expect(form.textInput.inputElement.value).toBe('Discard this');
+        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+        await expect.poll(() => form.urlInput.invalid).toBe(true);
+        expect(form.urlInput.validationMessage).not.toBe('');
+
+        await fixture.user.click(form.formElement.querySelector('button[type="button"]'));
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+        expect(fixture.host.value).toBe(originalValue);
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        await openForm(fixture);
+
+        expect(form.urlInput.inputElement.value).toBe('');
+        expect(form.textInput.inputElement.value).toBe('');
+        expect(form.urlInput.invalid).toBe(false);
+        expect(form.urlInput.validationMessage).toBe('');
+        await form.urlInput.updateComplete;
+        expect(form.urlInput.querySelector('[data-role="error-message"]')).toBeNull();
+        expect(fixture.host.value).toBe(originalValue);
+    });
+
+    it('POP-010 preserves surrounding content when saving at a selection inside text', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Before target after</p>"></rich-text-editor>');
+        const editor = getEditorElement(fixture);
+        await expect.poll(() => document.activeElement).toBe(editor);
+        await fixture.user.click(editor);
+        const text = editor.querySelector('p').firstChild;
+        window.getSelection().setBaseAndExtent(text, 7, text, command === 'link' ? 13 : 7);
+        if (command === 'link') {
+            expect(window.getSelection()?.toString()).toBe('target');
+        } else {
+            expect(window.getSelection()?.anchorOffset).toBe(7);
+            expect(window.getSelection()?.isCollapsed).toBe(true);
+        }
+
+        const form = await openForm(fixture);
+        await fixture.user.type(form.urlInput.inputElement, '/positioned');
+        expect(form.urlInput.inputElement.value).toBe('/positioned');
+        expect(editor.textContent).toBe('Before target after');
+        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+
+        const output = new DOMParser().parseFromString(fixture.host.value, 'text/html').body;
+        if (command === 'link') {
+            expect(output.querySelectorAll('a')).toHaveLength(1);
+            expect(output.querySelector('a')?.textContent).toBe('target');
+            expect(output.querySelector('a')?.getAttribute('href')).toBe('/positioned');
+            expect(output.querySelector('a')?.previousSibling?.textContent).toBe('Before ');
+            expect(output.querySelector('a')?.nextSibling?.textContent).toBe(' after');
+        } else {
+            expect(Array.from(output.children, element => element.tagName)).toEqual(['P', 'IMG', 'P']);
+            expect(output.children[0].textContent).toBe('Before ');
+            expect(output.children[1].getAttribute('src')).toBe('/positioned');
+            expect(output.children[2].textContent).toBe('target after');
+        }
+    });
+
+    if (command === 'link') {
+        it('POP-011 edits block link attributes without changing its content', async () => {
+            const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+            await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+            fixture.host.value = '<a href="/old" target="_blank"><h2>Heading</h2><p>Keep <strong>this</strong> content</p></a>';
+            await fixture.host.updateComplete;
+            const originalContent = fixture.querySelector('[data-role="editor"] a').innerHTML;
+            await fixture.user.click(fixture.querySelector('[data-role="editor"] a p'));
+            const form = await openForm(fixture);
+
+            expect(form.textInput.hidden).toBe(true);
+            expect(form.urlInput.inputElement.value).toBe('/old');
+            expect(form.checkInput.checked).toBe(true);
+            await fixture.user.clear(form.urlInput.inputElement);
+            await fixture.user.type(form.urlInput.inputElement, '/new');
+            expect(form.urlInput.inputElement.value).toBe('/new');
+            await fixture.user.click(form.checkInput.inputElement);
+            expect(form.checkInput.checked).toBe(false);
+            await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+            await expect.poll(() => form.matches(':popover-open')).toBe(false);
+
+            const output = new DOMParser().parseFromString(fixture.host.value, 'text/html').body;
+            expect(output.querySelectorAll('a')).toHaveLength(1);
+            const link = output.querySelector('a');
+            expect(link.getAttribute('href')).toBe('/new');
+            expect(link.hasAttribute('target')).toBe(false);
+            expect(link.getAttribute('rel')).toBe('noopener noreferrer nofollow');
+            expect(link.innerHTML).toBe(originalContent);
+        });
+    }
+
+    it('POP-004 restores scroll and editor focus after a native popover close', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        const form = await openForm(fixture);
+        const lockedWheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+        fixture.form.dispatchEvent(lockedWheel);
+        expect(lockedWheel.defaultPrevented).toBe(true);
+        await fixture.user.click(form.urlInput.inputElement);
+
+        form.hidePopover();
+
+        await expect
+            .poll(() => {
+                const wheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+                fixture.form.dispatchEvent(wheel);
+                return wheel.defaultPrevented;
+            })
+            .toBe(false);
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+    });
+
+    it('POP-005 releases the scroll lock when the editor is disconnected with a popup open', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
+        const form = await openForm(fixture);
+        try {
+            const lockedWheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+            fixture.form.dispatchEvent(lockedWheel);
+            expect(lockedWheel.defaultPrevented).toBe(true);
+
+            fixture.host.remove();
+
+            await expect
+                .poll(() => {
+                    const wheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+                    fixture.form.dispatchEvent(wheel);
+                    return wheel.defaultPrevented;
+                })
+                .toBe(false);
+        } finally {
+            unlockAllScrolls(form);
+        }
     });
 });
 
@@ -1052,16 +1398,36 @@ Aşağıdaki case'ler Bold, Italic, Underline, Strike ve Inline Code için param
 * [x] IMG-002 — `src` serialize edilir.
 * [x] IMG-003 — `alt` serialize edilir.
 * [x] IMG-004 — `title` serialize edilir.
-* [ ] IMG-005 — Image seçilebilir.
-* [ ] IMG-006 — Image silinebilir.
-* [ ] IMG-007 — Image insertion undo/redo çalışır.
-* [ ] IMG-008 — Broken image URL editorü bozmaz.
-* [ ] IMG-009 — Boş URL image oluşturmaz.
-* [ ] IMG-010 — Unsupported URL scheme politikaya göre engellenir.
+* [x] IMG-005 — Image seçilebilir.
+* [x] IMG-006 — Image silinebilir.
+* [x] IMG-007 — Image insertion undo/redo çalışır.
+* [x] IMG-008 — Broken image URL editorü bozmaz.
+* [x] IMG-009 — Boş URL image oluşturmaz.
+* [x] IMG-010 — Unsupported URL scheme politikaya göre engellenir.
 * [x] IMG-011 — Base64 image varsayılan politikaya göre reddedilir.
 * [x] IMG-012 — Image HTML round-trip'te korunur.
-* [ ] IMG-013 — Image öncesinde cursor konumlandırılabilir.
-* [ ] IMG-014 — Image sonrasında cursor konumlandırılabilir.
+* [x] IMG-013 — Image öncesinde cursor konumlandırılabilir.
+* [x] IMG-014 — Image sonrasında cursor konumlandırılabilir.
+
+### Popover Integration (Link ve Image)
+
+Burada [x], çalıştırılabilir test bulunduğunu belirtir; testin başarılı olduğunu değil.
+
+* [x] POP-001 — Kapalı popup'ın required alanları dış form submit'ini engellemez; alanlar kendi formuna bağlıdır.
+* [x] POP-002 — Popup düzenlemesi editor input'u üretmez.
+* [x] POP-003 — Cancel içeriği değiştirmez; yeniden açılışta alanlar ve validasyon temizdir.
+* [x] POP-004 — Native kapanış scroll kilidini kaldırır ve odağı editöre döndürür.
+* [x] POP-005 — Popup açıkken disconnect scroll kilidini temizler.
+* [ ] POP-006 — Escape popup'ı kapatır; alanlar, validasyon, scroll ve focus temizlenir.
+* [ ] POP-007 — Dışarı tıklama popup'ı kapatır ve aynı kapanış temizliğini uygular.
+* [ ] POP-008 — Viewport kenarlarında popup görünür alanda konumlanır.
+* [ ] POP-009 — Birden fazla editorün popup modelleri ve scroll kilitleri birbirinden bağımsızdır.
+* [x] POP-010 — Popup açma/kaydetme seçimi korur; link/görsel doğru konuma eklenir.
+* [x] POP-011 — Blok link düzenleme metin alanını gizler ve blok içeriğini korur.
+* [ ] POP-012 — Disconnect/reconnect sonrasında popup'lar duplicate event üretmeden çalışır.
+* [x] POP-013 — Başarılı kayıt tek editor input'u üretir ve dış form submit'ine sızmaz.
+* [x] POP-014 — Boş URL kaydı engeller; hata gösterildikten sonra geçerli URL ile kayıt yapılabilir.
+* [x] POP-015 — Validasyon hatasından sonra iptal/yeniden açılış alanları ve hatayı temizler; mevcut içerik korunur.
 
 ### Image Upload / File Handler
 

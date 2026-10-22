@@ -160,8 +160,14 @@ export class RichTextImageForm extends RichTextPopoverFormBase {
     }
 
     render() {
-        const onInputUrl = event => (this.value.url = event.target.value);
-        const onInputAlt = event => (this.value.alt = event.target.value);
+        const onInputUrl = event => {
+            event.stopPropagation();
+            this.value.url = event.target.value;
+        };
+        const onInputAlt = event => {
+            event.stopPropagation();
+            this.value.alt = event.target.value;
+        };
 
         return html`
             <form @submit=${this.onSubmit}>
@@ -222,9 +228,19 @@ export class RichTextLinkForm extends RichTextPopoverFormBase {
     }
 
     render() {
-        const onInputUrl = event => (this.value.url = event.target.value);
-        const onInputText = event => (this.value.text = event.target.value);
-        const onInputBlank = event => (this.value.blank = event.target.checked);
+        const onInputUrl = event => {
+            event.stopPropagation();
+            this.value.url = event.target.value;
+        };
+        const onInputText = event => {
+            event.stopPropagation();
+            this.value.text = event.target.value;
+        };
+        const onInputBlank = event => {
+            event.stopPropagation();
+            this.value.blank = event.target.checked;
+        };
+
         const newTabLabel = this.localeMessages.openLinkInNewTabLabel;
         const textPlaceholder = this.localeMessages.linkTextPlaceholder;
 

@@ -41,7 +41,10 @@ export default class RichTextEditor extends RichTextEditorBase {
 
     disconnectedCallback() {
         super.disconnectedCallback();
-        // DOM'dan çıkışta editör instance'ını temizle (RT-011, P0-029)
+
+        if (this.#linkForm) unlockAllScrolls(this.#linkForm);
+        if (this.#imageForm) unlockAllScrolls(this.#imageForm);
+
         if (this.#editor) {
             this.#editor.destroy();
             this.#editor = null;
