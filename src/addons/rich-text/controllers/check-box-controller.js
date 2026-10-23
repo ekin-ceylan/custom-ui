@@ -1,7 +1,4 @@
-import { mixins } from '../modules/mixin-utils.js';
-import ControllerBase from '../core/controller-base.js';
-import FormControlMixin from '../core/form-control-mixin.js';
-import CheckBoxMixin from '../core/check-box-mixin.js';
+import { CheckBoxMixin, FormControlMixin, ControllerBase, mixins } from 'custom-ui';
 
 export default class CheckBoxController extends mixins(ControllerBase, CheckBoxMixin, FormControlMixin) {
     #formControlInitialized = false;

@@ -1,8 +1,4 @@
-import { mixins } from 'custom-ui';
-import ControllerBase from '../core/controller-base.js';
-import TextControlMixin from '../core/text-control-mixin.js';
-import StandardControlMixin from '../core/standard-control-mixin.js';
-import FormControlMixin from '../core/form-control-mixin.js';
+import { mixins, ControllerBase, FormControlMixin, StandardControlMixin, TextControlMixin } from 'custom-ui';
 
 export default class TextBoxController extends mixins(ControllerBase, TextControlMixin, StandardControlMixin, FormControlMixin) {
     #textControlInitialized = false;

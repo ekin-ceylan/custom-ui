@@ -28,27 +28,27 @@
 /**
  * Applies one or more mixins to the given base class.
  * @template {Constructor<any>} TBase
- * @template {object} M1
- * @template {object} M2
+ * @template {(...args: any[]) => Constructor<any>} M1
+ * @template {(...args: any[]) => Constructor<any>} M2
  * @overload
  * @param {TBase} BaseClass
- * @param {ClassMixin<TBase, M1>} m1
- * @param {ClassMixin<TBase, M2>} m2
- * @returns {TBase & Constructor<InstanceType<TBase> & M2 & M1>}
+ * @param {M1} m1
+ * @param {M2} m2
+ * @returns {TBase & Constructor<InstanceType<TBase> & InstanceType<ReturnType<M2>> & InstanceType<ReturnType<M1>>>}
  */
 
 /**
  * Applies one or more mixins to the given base class.
  * @template {Constructor<any>} TBase
- * @template {object} M1
- * @template {object} M2
- * @template {object} M3
+ * @template {(...args: any[]) => Constructor<any>} M1
+ * @template {(...args: any[]) => Constructor<any>} M2
+ * @template {(...args: any[]) => Constructor<any>} M3
  * @overload
  * @param {TBase} BaseClass
- * @param {ClassMixin<TBase, M1>} m1
- * @param {ClassMixin<TBase, M2>} m2
- * @param {ClassMixin<TBase, M3>} m3
- * @returns {TBase & Constructor<InstanceType<TBase> & M3 & M2 & M1>}
+ * @param {M1} m1
+ * @param {M2} m2
+ * @param {M3} m3
+ * @returns {TBase & Constructor<InstanceType<TBase> & InstanceType<ReturnType<M3>> & InstanceType<ReturnType<M2>> & InstanceType<ReturnType<M1>>>}
  */
 
 /**

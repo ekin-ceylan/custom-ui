@@ -8,8 +8,15 @@ export { getLocale, setLocale, configure, registerLocale, getMessages, getMessag
 export { renderIcon } from '../modules/icons.js';
 
 // Controllers
-export { default as TextBoxController } from '../controllers/text-box-controller.js';
-export { default as CheckBoxController } from '../controllers/check-box-controller.js';
+// export { default as TextBoxController } from '../controllers/text-box-controller.js';
+// export { default as CheckBoxController } from '../controllers/check-box-controller.js';
+
+// Core
+export { default as CheckBoxMixin } from '../core/check-box-mixin.js';
+export { default as TextControlMixin } from '../core/text-control-mixin.js';
+export { default as FormControlMixin } from '../core/form-control-mixin.js';
+export { default as StandardControlMixin } from '../core/standard-control-mixin.js';
+export { default as ControllerBase } from '../core/controller-base.js';
 
 // Constants
 export { default as Keys } from '../enums/Keys.js';

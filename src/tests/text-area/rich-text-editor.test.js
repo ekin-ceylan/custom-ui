@@ -973,6 +973,7 @@ describe.each([
         }
 
         const form = await openForm(fixture);
+        await fixture.user.click(form.urlInput.inputElement);
         await fixture.user.type(form.urlInput.inputElement, '/positioned');
         expect(form.urlInput.inputElement.value).toBe('/positioned');
         expect(editor.textContent).toBe('Before target after');

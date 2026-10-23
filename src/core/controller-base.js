@@ -15,11 +15,7 @@ export default class ControllerBase extends EventTarget {
      */
     get parentElement() {
         if (typeof this.options.parentElement === 'string') {
-            const parent = this.host.querySelector(this.options.parentElement);
-            if (!(parent instanceof HTMLElement)) {
-                throw new Error(`[${this.componentName}]: Parent element '${this.options.parentElement}' was not found in the host.`);
-            }
-            return parent;
+            return this.host.querySelector(this.options.parentElement);
         }
 
         return this.options.parentElement || this.host || null;

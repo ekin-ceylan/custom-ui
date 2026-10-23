@@ -23,7 +23,7 @@ import TcBox from './components/text-input/tc-box.js';
 import TableComponent from './components/table/table.js';
 import Pagination from './components/table/pagination.js';
 
-import ControllerTest from './components/controller-test.js';
+import ControllerTest from './addons/rich-text/controller-test.js';
 
 defineComponent('typed-table', TableComponent);
 defineComponent('typed-pagination', Pagination);
