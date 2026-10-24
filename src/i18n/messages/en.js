@@ -48,7 +48,7 @@ export const enMessages = {
     linkTextPlaceholder: 'Link text',
     openLinkInNewTabLabel: 'Open in new tab',
     imageUrlLabel: 'Image URL',
-    imageAltLabel: 'Alternative text',
+    imageAltLabel: 'Alternative Text',
     imageAltPlaceholder: 'Image description',
     removeLinkButtonLabel: 'Remove',
     cancelButtonLabel: 'Cancel',

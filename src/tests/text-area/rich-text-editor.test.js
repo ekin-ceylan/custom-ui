@@ -377,6 +377,30 @@ describe('Rich text editor - Form Integration', () => {
         expect(fixture.input.validity.valid).toBe(true);
     });
 
+    it('FORM-021 does not show a minlength error for an initial value attribute', async () => {
+        document.body.innerHTML = '<rich-text-editor label="Description" minlength="20" value="<p>Initial</p>"></rich-text-editor>';
+        const host = document.body.firstElementChild;
+        await host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await host.updateComplete;
+
+        expect(host.value).toBe('<p>Initial</p>');
+        expect(getEditorElement(host).innerHTML).toBe('<p>Initial</p>');
+        expect(host.querySelector('[data-role="error-message"]')).toBeNull();
+    });
+
+    it('FORM-022 does not show a minlength error for initial slot content', async () => {
+        document.body.innerHTML = '<rich-text-editor label="Description" minlength="20"><p>Initial</p></rich-text-editor>';
+        const host = document.body.firstElementChild;
+        await host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await host.updateComplete;
+
+        expect(host.value).toBe('<p>Initial</p>');
+        expect(getEditorElement(host).innerHTML).toBe('<p>Initial</p>');
+        expect(host.querySelector('[data-role="error-message"]')).toBeNull();
+    });
+
     it('FORM-015 allows exceeding maxlength while editing and shows an error on blur', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="5"></rich-text-editor>');
         const editorElement = getEditorElement(fixture.host);
@@ -1376,6 +1400,8 @@ function getEditorElement(host) {
 * [x] FORM-018 — Programatik `maxlength` aşımında hata gösterilir.
 * [x] FORM-019 — `disabled` durumda source textarea üzerinden edit yapılamaz.
 * [x] FORM-020 — `readonly` durumda source textarea üzerinden edit yapılamaz.
+* [x] FORM-021 — `minlength` altındaki başlangıç `value` değeri için hata mesajı gösterilmez.
+* [x] FORM-022 — `minlength` altındaki başlangıç slot içeriği için hata mesajı gösterilmez.
 
 ---
 

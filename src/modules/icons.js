@@ -2,9 +2,9 @@ import { spread } from '../modules/spread.js';
 import { html, svg } from 'lit';
 
 export const chevronDown = (strokeWidth = 2, attr = {}) => renderIcon(['M6 9l6 6l6 -6'], strokeWidth, attr);
-export const eye = (strokeWidth = 2, attr = {}) =>
+export const eye = (strokeWidth = 1.5, attr = {}) =>
     renderIcon(['M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0', 'M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6'], strokeWidth, attr);
-export const eyeOff = (strokeWidth = 2, attr = {}) =>
+export const eyeOff = (strokeWidth = 1.5, attr = {}) =>
     renderIcon(
         [
             'M10.585 10.587a2 2 0 0 0 2.829 2.828',
@@ -22,7 +22,7 @@ export const times = (strokeWidth = 2, attr = {}) => renderIcon(['M18 6l-12 12',
  * @param {number} strokeWidth
  * @returns {import('lit').TemplateResult}
  */
-export function renderIcon(paths, strokeWidth = 2, attr = {}) {
+export function renderIcon(paths, strokeWidth = 1.5, attr = {}) {
     return html`<svg
         width="1em"
         height="1em"
