@@ -1,12 +1,13 @@
 import { html, nothing } from 'lit';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
-import { defineComponent, ifDefined, isEmpty, lockAllScrolls, spread, unlockAllScrolls } from 'custom-ui';
+import { ifDefined, isEmpty, spread } from 'custom-ui';
 import { formatEditorContent, trimTrailingP } from './modules/rich-text-helper.js';
 import RichTextImage from './models/RichTextImage.js';
 import RichTextEditorLink from './models/RichTextEditorLink.js';
 import RichTextEditorBase from './base/rich-text-editor-base.js';
-import { RichTextImageForm, RichTextLinkForm } from './rich-text-popover-forms.js';
+import PopoverImageFormController from './controllers/popover-image-form-controller.js';
+import PopoverLinkFormController from './controllers/popover-link-form-controller.js';
 import createAttributeExtension from './modules/attribute-extensions.js';
 import createElementExtensions from './modules/element-extensions.js';
 import { link, photo } from './modules/icons.js';
@@ -23,12 +24,20 @@ export default class RichTextEditor extends RichTextEditorBase {
     #editor = null;
     /** @type {HTMLElement | null} */
     #editorContainer = null;
-    /** @type {RichTextLinkForm | null} */
-    #linkForm = null;
-    /** @type {RichTextImageForm | null} */
-    #imageForm = null;
+    #linkForm = new PopoverLinkFormController(this, { componentName: 'rich-text-link-form' });
+    #imageForm = new PopoverImageFormController(this, { componentName: 'rich-text-image-form' });
 
     // #endregion STATICS, FIELDS, GETTERS
+
+    constructor() {
+        super();
+
+        this.#linkForm.addEventListener('submit', event => this.#onLinkSubmit(event));
+        this.#linkForm.addEventListener('remove', () => this.#onLinkRemove());
+        this.#imageForm.addEventListener('submit', event => this.#onImageSubmit(event));
+        this.#addPopoverFormEvents(this.#linkForm);
+        this.#addPopoverFormEvents(this.#imageForm);
+    }
 
     connectedCallback() {
         super.connectedCallback();
@@ -42,9 +51,6 @@ export default class RichTextEditor extends RichTextEditorBase {
     disconnectedCallback() {
         super.disconnectedCallback();
 
-        if (this.#linkForm) unlockAllScrolls(this.#linkForm);
-        if (this.#imageForm) unlockAllScrolls(this.#imageForm);
-
         if (this.#editor) {
             this.#editor.destroy();
             this.#editor = null;
@@ -55,8 +61,6 @@ export default class RichTextEditor extends RichTextEditorBase {
         super.firstUpdated(changedProperties);
 
         this.#initEditor();
-        this.#linkForm = this.renderRoot.querySelector('rt-link-form');
-        this.#imageForm = this.renderRoot.querySelector('rt-image-form');
 
         // this.#editorContainer.addEventListener('mouseover', event => {
         //     // Tıklanan öğe veya onun bir üst öğesi <a> etiketi mi?
@@ -164,7 +168,7 @@ export default class RichTextEditor extends RichTextEditorBase {
 
     #onLinkSubmit(event) {
         /** @type {RichTextEditorLink} */
-        const linkModel = event.target.value;
+        const linkModel = event.detail.value;
 
         // URL silindiyse sildiyse ve submit dediyse, linki kaldır.
         if (!linkModel.url) {
@@ -189,19 +193,6 @@ export default class RichTextEditor extends RichTextEditorBase {
         this.#linkForm.hidePopover(); // İşlem bittikten sonra popover'ı kapat
     }
 
-    #onLinkCancel() {
-        this.#linkForm.hidePopover();
-    }
-
-    #onLinkToggle(event) {
-        if (event.newState === 'closed') {
-            this.#linkForm.value = new RichTextEditorLink();
-            this.#linkForm.reset(); // Formu sıfırla
-            this.#editor.commands.focus(); // Popover kapanınca odak editöre dönsün
-            unlockAllScrolls(this.#linkForm);
-        }
-    }
-
     #onLinkRemove() {
         this.#editor.chain().focus().extendMarkRange('link').unsetLink().run();
         this.#linkForm.hidePopover();
@@ -209,25 +200,12 @@ export default class RichTextEditor extends RichTextEditorBase {
 
     #onImageSubmit(event) {
         /** @type {RichTextImage} */
-        const imageModel = event.target.value;
+        const imageModel = event.detail.value;
 
         if (!imageModel.url) return;
 
         this.#editor.chain().focus().insertContent({ type: 'image', attrs: imageModel.node }).run();
         this.#imageForm.hidePopover();
-    }
-
-    #onImageCancel() {
-        this.#imageForm.hidePopover();
-    }
-
-    #onImageToggle(event) {
-        if (event.newState === 'closed') {
-            this.#imageForm.value = new RichTextImage();
-            this.#imageForm.reset(); // Formu sıfırla
-            this.#editor.commands.focus();
-            unlockAllScrolls(this.#imageForm);
-        }
     }
 
     // #endregion EVENT HANDLERS
@@ -266,6 +244,18 @@ export default class RichTextEditor extends RichTextEditorBase {
 
         this.#onEditorUpdate(this.#editor);
         // this.inputElement.value = formatEditorContent(this.value);
+    }
+
+    /** @param {PopoverLinkFormController | PopoverImageFormController} form */
+    #addPopoverFormEvents(form) {
+        form.addEventListener('cancel', () => form.hidePopover());
+        form.addEventListener('toggle', event => {
+            const toggle = /** @type {CustomEvent<{ originalEvent: ToggleEvent }>} */ (event);
+            if (toggle.detail.originalEvent.newState === 'closed') {
+                form.reset();
+                if (this.isConnected) this.#editor?.commands.focus();
+            }
+        });
     }
 
     #checkValidity(force = false) {
@@ -309,7 +299,7 @@ export default class RichTextEditor extends RichTextEditorBase {
         const text = empty || isBlock ? '' : this.#editor.state.doc.textBetween(from, to, ' ');
 
         this.#linkForm.value = new RichTextEditorLink({ text, url, blank, isBlock });
-        this.#openLinkFormPopover(from);
+        void this.#openFormPopover(this.#linkForm, from);
     }
 
     #showImageForm() {
@@ -318,50 +308,18 @@ export default class RichTextEditor extends RichTextEditorBase {
         const { from } = this.#editor.state.selection;
         const attr = this.#editor.getAttributes('image');
         this.#imageForm.value = new RichTextImage({ url: attr?.src || '', alt: attr?.alt || '' });
-        this.#openImageFormPopover(from);
-    }
-
-    /** @param {number} from */
-    #openLinkFormPopover(from) {
-        this.#linkForm.showPopover();
-        lockAllScrolls(this.#linkForm, () => this.#linkForm?.hidePopover());
-        this.#positionPopover(this.#linkForm, from);
-    }
-
-    /** @param {number} from */
-    #openImageFormPopover(from) {
-        this.#imageForm.showPopover();
-        lockAllScrolls(this.#imageForm, () => this.#imageForm?.hidePopover());
-
-        this.#positionPopover(this.#imageForm, from);
+        void this.#openFormPopover(this.#imageForm, from);
     }
 
     /**
-     * @param {HTMLElement} popover
+     * @param {PopoverLinkFormController | PopoverImageFormController} form
      * @param {number} from
      */
-    #positionPopover(popover, from) {
-        const gap = 10;
-        const viewportPadding = 20;
-        const coords = this.#editor.view.coordsAtPos(from);
-
-        popover.style.margin = '0';
-        popover.style.right = 'auto';
-        popover.style.bottom = 'auto';
-        popover.style.maxHeight = `${window.innerHeight - viewportPadding * 2}px`;
-        popover.style.overflowY = 'auto';
-
-        const popoverRect = popover.getBoundingClientRect();
-        const spaceAbove = coords.top - viewportPadding - gap;
-        const spaceBelow = window.innerHeight - coords.bottom - viewportPadding - gap;
-        const openAbove = spaceAbove > spaceBelow;
-        const preferredTop = openAbove ? coords.top - gap - popoverRect.height : coords.bottom + gap;
-        const maxTop = window.innerHeight - popoverRect.height - viewportPadding;
-        const maxLeft = window.innerWidth - popoverRect.width - viewportPadding;
-
-        popover.style.top = `${Math.max(viewportPadding, Math.min(preferredTop, maxTop))}px`;
-        popover.style.left = `${Math.max(viewportPadding, Math.min(coords.left, maxLeft))}px`;
-        popover.dataset.placement = openAbove ? 'top' : 'bottom';
+    async #openFormPopover(form, from) {
+        const editor = this.#editor;
+        await this.updateComplete;
+        if (!this.isConnected || this.#editor !== editor) return;
+        form.showPopover(editor.view.coordsAtPos(from));
     }
 
     /** @returns {import('lit').TemplateResult | typeof nothing} */
@@ -441,14 +399,9 @@ export default class RichTextEditor extends RichTextEditorBase {
                 ></textarea>
                 ${this.renderEditorDiv(this.#editor)} ${this.renderPlaceholder()} ${this.renderClearButton()} ${this.renderDescription()}
             </div>
-            <rt-link-form @submit=${this.#onLinkSubmit} @remove=${this.#onLinkRemove} @toggle=${this.#onLinkToggle} @cancel=${this.#onLinkCancel} popover="auto"></rt-link-form>
-            <rt-image-form @submit=${this.#onImageSubmit} @toggle=${this.#onImageToggle} @cancel=${this.#onImageCancel} popover="auto"></rt-image-form>
-            ${this.renderErrorMessage()}`;
+            ${this.#linkForm.renderTemplate()} ${this.#imageForm.renderTemplate()} ${this.renderErrorMessage()}`;
     }
 }
-
-defineComponent('rt-link-form', RichTextLinkForm);
-defineComponent('rt-image-form', RichTextImageForm);
 
 /*
 npm install listesi

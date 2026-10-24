@@ -1,8 +1,25 @@
 import RichTextEditor from '../../addons/rich-text/rich-text-editor.js';
 import { Editor } from '@tiptap/core';
 import { unlockAllScrolls } from 'custom-ui';
+import { page, userEvent as browserUser } from '@vitest/browser/context';
 
 defineElement('rich-text-editor', RichTextEditor);
+
+function getPopoverControl(popover, kind) {
+    return popover.querySelector(`[data-role="link-${kind}"], [data-role="image-${kind}"]`);
+}
+
+function getPopoverInput(popover, kind) {
+    return getPopoverControl(popover, kind).querySelector('input');
+}
+
+function getPopoverNativeForm(popover) {
+    return popover.matches('form') ? popover : popover.querySelector('form');
+}
+
+function isPopoverInputInvalid(popover, kind) {
+    return getPopoverInput(popover, kind).getAttribute('aria-invalid') === 'true';
+}
 
 describe('Rich text editor - Component / Value Contract', () => {
     afterEach(() => {
@@ -416,7 +433,7 @@ describe('Rich text editor - Form Integration', () => {
 
 describe('Rich text editor - Links', () => {
     afterEach(() => {
-        document.querySelectorAll('rt-link-form, rt-image-form').forEach(form => unlockAllScrolls(form));
+        document.querySelectorAll('[data-role="rich-text-link-form"], [data-role="rich-text-image-form"]').forEach(form => unlockAllScrolls(form));
         document.body.innerHTML = '';
     });
 
@@ -436,8 +453,8 @@ describe('Rich text editor - Links', () => {
     const openLinkForm = async fixture => {
         await fixture.user.click(fixture.querySelector('button[data-command="link"]'));
 
-        const linkForm = fixture.querySelector('rt-link-form');
-        await linkForm.updateComplete;
+        const linkForm = fixture.querySelector('[data-role="rich-text-link-form"]');
+        await fixture.host.updateComplete;
         return linkForm;
     };
 
@@ -445,18 +462,18 @@ describe('Rich text editor - Links', () => {
         const linkForm = await openLinkForm(fixture);
 
         if (text !== undefined) {
-            await fixture.user.clear(linkForm.textInput.inputElement);
-            await fixture.user.type(linkForm.textInput.inputElement, text);
+            await fixture.user.clear(getPopoverInput(linkForm, 'text'));
+            await fixture.user.type(getPopoverInput(linkForm, 'text'), text);
         }
 
-        await fixture.user.clear(linkForm.urlInput.inputElement);
-        if (url) await fixture.user.type(linkForm.urlInput.inputElement, url);
+        await fixture.user.clear(getPopoverInput(linkForm, 'url'));
+        if (url) await fixture.user.type(getPopoverInput(linkForm, 'url'), url);
 
-        if (linkForm.checkInput.checked !== blank) {
-            await fixture.user.click(linkForm.checkInput.inputElement);
+        if (getPopoverInput(linkForm, 'blank').checked !== blank) {
+            await fixture.user.click(getPopoverInput(linkForm, 'blank'));
         }
 
-        await fixture.user.click(linkForm.formElement.querySelector('button[type="submit"]'));
+        await fixture.user.click(getPopoverNativeForm(linkForm).querySelector('button[type="submit"]'));
         await fixture.host.updateComplete;
 
         return linkForm;
@@ -485,7 +502,7 @@ describe('Rich text editor - Links', () => {
         await selectLink(fixture);
 
         const linkForm = await openLinkForm(fixture);
-        await fixture.user.click(Array.from(linkForm.formElement.querySelectorAll('button')).find(button => button.textContent.trim() === 'Kaldır'));
+        await fixture.user.click(Array.from(getPopoverNativeForm(linkForm).querySelectorAll('button')).find(button => button.textContent.trim() === 'Kaldır'));
         await fixture.host.updateComplete;
 
         expect(fixture.host.value).toBe('<p>Example</p>');
@@ -575,9 +592,9 @@ describe('Rich text editor - Links', () => {
         await selectAllText(fixture);
 
         const linkForm = await openLinkForm(fixture);
-        linkForm.urlInput.inputElement.focus();
+        getPopoverInput(linkForm, 'url').focus();
         await fixture.user.paste('  https://example.com  ');
-        await fixture.user.click(linkForm.formElement.querySelector('button[type="submit"]'));
+        await fixture.user.click(getPopoverNativeForm(linkForm).querySelector('button[type="submit"]'));
         await fixture.host.updateComplete;
 
         expect(fixture.querySelector('[data-role="editor"] a')?.getAttribute('href')).toBe('https://example.com');
@@ -662,18 +679,19 @@ describe('Rich text editor - Links', () => {
 
 describe('Rich text editor - Images', () => {
     afterEach(() => {
-        document.querySelectorAll('rt-link-form, rt-image-form').forEach(form => unlockAllScrolls(form));
+        document.querySelectorAll('[data-role="rich-text-link-form"], [data-role="rich-text-image-form"]').forEach(form => unlockAllScrolls(form));
         document.body.innerHTML = '';
     });
 
     const submitImageForm = async (fixture, { url, alt }) => {
         await fixture.user.click(fixture.querySelector('button[data-command="image"]'));
 
-        const imageForm = fixture.querySelector('rt-image-form');
-        await imageForm.updateComplete;
-        await fixture.user.type(imageForm.urlInput.inputElement, url);
-        if (alt) await fixture.user.type(imageForm.textInput.inputElement, alt);
-        await fixture.user.click(imageForm.formElement.querySelector('button[type="submit"]'));
+        const imageForm = fixture.querySelector('[data-role="rich-text-image-form"]');
+        await fixture.host.updateComplete;
+        await expect.poll(() => imageForm.matches(':popover-open')).toBe(true);
+        await fixture.user.type(getPopoverInput(imageForm, 'url'), url);
+        if (alt) await fixture.user.type(getPopoverInput(imageForm, 'text'), alt);
+        await fixture.user.click(getPopoverNativeForm(imageForm).querySelector('button[type="submit"]'));
         await fixture.host.updateComplete;
     };
 
@@ -720,11 +738,11 @@ describe('Rich text editor - Images', () => {
 
         await fixture.user.click(fixture.querySelector('[data-role="editor"] img'));
         await fixture.user.click(fixture.querySelector('button[data-command="image"]'));
-        const form = fixture.querySelector('rt-image-form');
-        await form.updateComplete;
+        const form = fixture.querySelector('[data-role="rich-text-image-form"]');
+        await fixture.host.updateComplete;
 
-        expect(form.urlInput.inputElement.value).toBe('/image.png');
-        expect(form.textInput.inputElement.value).toBe('Existing image');
+        expect(getPopoverInput(form, 'url').value).toBe('/image.png');
+        expect(getPopoverInput(form, 'text').value).toBe('Existing image');
     });
 
     it('IMG-006 deletes a selected image with Backspace', async () => {
@@ -797,15 +815,15 @@ describe('Rich text editor - Images', () => {
         fixture.host.value = '<p>Keep this content</p>';
         await fixture.host.updateComplete;
         await fixture.user.click(fixture.querySelector('button[data-command="image"]'));
-        const form = fixture.querySelector('rt-image-form');
-        await form.updateComplete;
-        if (url) await fixture.user.type(form.urlInput.inputElement, url);
+        const form = fixture.querySelector('[data-role="rich-text-image-form"]');
+        await fixture.host.updateComplete;
+        if (url) await fixture.user.type(getPopoverInput(form, 'url'), url);
 
-        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+        await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
         await fixture.host.updateComplete;
 
         expect(form.matches(':popover-open')).toBe(true);
-        expect(form.urlInput.inputElement.checkValidity()).toBe(false);
+        expect(getPopoverInput(form, 'url').checkValidity()).toBe(false);
         expect(fixture.host.value).toBe('<p>Keep this content</p>');
         expect(fixture.querySelector('[data-role="editor"] img')).toBeNull();
     });
@@ -822,21 +840,180 @@ describe('Rich text editor - Images', () => {
 });
 
 describe.each([
-    ['link', 'rt-link-form'],
-    ['image', 'rt-image-form'],
+    ['link', '[data-role="rich-text-link-form"]'],
+    ['image', '[data-role="rich-text-image-form"]'],
 ])('Rich text editor - %s popover integration', (command, selector) => {
     afterEach(() => {
-        document.querySelectorAll('rt-link-form, rt-image-form').forEach(form => unlockAllScrolls(form));
+        document.querySelectorAll('[data-role="rich-text-link-form"], [data-role="rich-text-image-form"]').forEach(form => unlockAllScrolls(form));
         document.body.innerHTML = '';
     });
 
     const openForm = async fixture => {
         await fixture.user.click(fixture.querySelector(`button[data-command="${command}"]`));
         const form = fixture.querySelector(selector);
-        await form.updateComplete;
+        await fixture.host.updateComplete;
         await expect.poll(() => form.matches(':popover-open')).toBe(true);
         return form;
     };
+
+    const isScrollLocked = () => {
+        const wheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
+        document.body.dispatchEvent(wheel);
+        return wheel.defaultPrevented;
+    };
+
+    it.each([
+        ['POP-006', 'Escape'],
+        ['POP-007', 'outside click'],
+    ])('%s clears fields, validation and scroll lock after %s', async (_id, dismissal) => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Keep this</p>"></rich-text-editor>');
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        const originalValue = fixture.host.value;
+        const form = await openForm(fixture);
+        await browserUser.fill(getPopoverInput(form, 'text'), 'Discard this');
+        await browserUser.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
+        await expect.poll(() => isPopoverInputInvalid(form, 'url')).toBe(true);
+        expect(getPopoverInput(form, 'url').validationMessage).not.toBe('');
+        expect(isScrollLocked()).toBe(true);
+
+        let trustedDismissal = false;
+        if (dismissal === 'Escape') {
+            form.addEventListener('keydown', event => (trustedDismissal = event.isTrusted && event.key === 'Escape'), { once: true });
+            await browserUser.keyboard('{Escape}');
+        } else {
+            const outside = document.createElement('button');
+            outside.type = 'button';
+            outside.textContent = 'Outside popover';
+            outside.style.cssText = 'position:fixed;right:0;bottom:0;';
+            document.body.appendChild(outside);
+            outside.addEventListener('click', event => (trustedDismissal = event.isTrusted), { once: true });
+            await browserUser.click(outside);
+        }
+
+        expect(trustedDismissal).toBe(true);
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+        await expect.poll(isScrollLocked).toBe(false);
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        expect(fixture.host.value).toBe(originalValue);
+        await openForm(fixture);
+        expect(getPopoverInput(form, 'url').value).toBe('');
+        expect(getPopoverInput(form, 'text').value).toBe('');
+        expect(isPopoverInputInvalid(form, 'url')).toBe(false);
+        expect(getPopoverInput(form, 'url').validity.customError).toBe(false);
+        await fixture.host.updateComplete;
+        expect(getPopoverControl(form, 'url').querySelector('[data-role="error-message"]')).toBeNull();
+    });
+
+    it.each(['top-left', 'top-right', 'bottom-left', 'bottom-right'])('POP-008 keeps a popup inside the viewport at %s', async corner => {
+        const originalViewport = { width: window.innerWidth, height: window.innerHeight };
+        try {
+            await page.viewport(900, 700);
+            const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Anchor</p>"></rich-text-editor>');
+            fixture.host.style.cssText = `position:fixed;width:320px;${corner.includes('top') ? 'top' : 'bottom'}:20px;${corner.includes('left') ? 'left' : 'right'}:20px;`;
+            await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+            const anchor = getEditorElement(fixture).getBoundingClientRect();
+            expect(anchor.left).toBeGreaterThanOrEqual(0);
+            expect(anchor.right).toBeLessThanOrEqual(window.innerWidth);
+            const form = await openForm(fixture);
+            const rect = form.getBoundingClientRect();
+
+            expect(rect.width).toBeGreaterThan(0);
+            expect(rect.height).toBeGreaterThan(0);
+            expect(rect.left).toBeGreaterThanOrEqual(20);
+            expect(rect.top).toBeGreaterThanOrEqual(20);
+            expect(rect.right).toBeLessThanOrEqual(window.innerWidth - 20);
+            expect(rect.bottom).toBeLessThanOrEqual(window.innerHeight - 20);
+            expect(form.dataset.placement).toBe(corner.includes('top') ? 'bottom' : 'top');
+        } finally {
+            document.querySelectorAll('[data-role="rich-text-link-form"], [data-role="rich-text-image-form"]').forEach(form => {
+                if (form.matches(':popover-open')) form.hidePopover();
+            });
+            await page.viewport(originalViewport.width, originalViewport.height);
+        }
+    });
+
+    it('POP-009 isolates popup models, events and scroll locks between two editors', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="First"></rich-text-editor>');
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        const second = document.createElement('rich-text-editor');
+        second.setAttribute('label', 'Second');
+        fixture.form.appendChild(second);
+        await second.updateComplete;
+        const firstForm = await openForm(fixture);
+        await browserUser.fill(getPopoverInput(firstForm, 'url'), '/discard-first');
+        const secondForm = second.querySelector(selector);
+        let firstInputs = 0;
+        let secondInputs = 0;
+        fixture.host.addEventListener('input', () => firstInputs++);
+        second.addEventListener('input', () => secondInputs++);
+
+        await browserUser.click(second.querySelector(`button[data-command="${command}"]`));
+        await expect.poll(() => secondForm.matches(':popover-open')).toBe(true);
+        await expect.poll(() => firstForm.matches(':popover-open')).toBe(false);
+        await expect.poll(() => getPopoverInput(firstForm, 'url').value).toBe('');
+        expect(getPopoverInput(secondForm, 'url').value).toBe('');
+        expect(isScrollLocked()).toBe(true);
+        await browserUser.fill(getPopoverInput(secondForm, 'url'), '/second');
+        expect(getPopoverInput(firstForm, 'url').value).toBe('');
+        await browserUser.click(getPopoverNativeForm(secondForm).querySelector('button[type="submit"]'));
+        await expect.poll(() => secondForm.matches(':popover-open')).toBe(false);
+        await expect.poll(isScrollLocked).toBe(false);
+        expect(fixture.host.value).toBe('');
+        expect(firstInputs).toBe(0);
+        expect(secondInputs).toBe(1);
+        const secondValue = second.value;
+        expect(secondValue).toContain(command === 'link' ? 'href="/second"' : 'src="/second"');
+
+        await openForm(fixture);
+        expect(getPopoverInput(firstForm, 'url').value).toBe('');
+        await browserUser.fill(getPopoverInput(firstForm, 'url'), '/first');
+        await browserUser.click(getPopoverNativeForm(firstForm).querySelector('button[type="submit"]'));
+        await expect.poll(() => firstForm.matches(':popover-open')).toBe(false);
+        await expect.poll(isScrollLocked).toBe(false);
+        expect(firstInputs).toBe(1);
+        expect(secondInputs).toBe(1);
+        expect(fixture.host.value).toContain(command === 'link' ? 'href="/first"' : 'src="/first"');
+        expect(second.value).toBe(secondValue);
+    });
+
+    it('POP-012 saves once after repeated disconnect and reconnect cycles', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" value="<p>Keep this</p>"></rich-text-editor>');
+        await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
+        const originalValue = fixture.host.value;
+        let inputs = 0;
+        let submits = 0;
+        fixture.host.addEventListener('input', () => inputs++);
+        fixture.form.addEventListener('submit', event => {
+            event.preventDefault();
+            submits++;
+        });
+
+        for (let cycle = 0; cycle < 2; cycle++) {
+            const form = await openForm(fixture);
+            await browserUser.fill(getPopoverInput(form, 'url'), '/discard');
+            expect(isScrollLocked()).toBe(true);
+            fixture.host.remove();
+            await expect.poll(isScrollLocked).toBe(false);
+            await expect.poll(() => form.matches(':popover-open')).toBe(false);
+            fixture.form.prepend(fixture.host);
+            await fixture.host.updateComplete;
+            await expect.poll(() => getEditorElement(fixture)?.isConnected).toBe(true);
+            expect(fixture.host.value).toBe(originalValue);
+            await browserUser.click(getEditorElement(fixture));
+        }
+
+        const form = await openForm(fixture);
+        expect(getPopoverInput(form, 'url').value).toBe('');
+        await browserUser.fill(getPopoverInput(form, 'url'), '/reconnected');
+        expect(inputs).toBe(0);
+        await browserUser.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
+        await expect.poll(isScrollLocked).toBe(false);
+        expect(inputs).toBe(1);
+        expect(submits).toBe(0);
+        expect(fixture.host.value).toContain(command === 'link' ? 'href="/reconnected"' : 'src="/reconnected"');
+        expect(getEditorElement(fixture).textContent).toContain('Keep this');
+    });
 
     it('POP-001 keeps outer form submission independent of empty required popup fields', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" name="description"></rich-text-editor>');
@@ -849,7 +1026,7 @@ describe.each([
         });
 
         const form = fixture.querySelector(selector);
-        expect(form.urlInput.inputElement.form).toBe(form.formElement);
+        expect(getPopoverInput(form, 'url').form).toBe(getPopoverNativeForm(form));
         expect(fixture.form.checkValidity()).toBe(true);
         await fixture.user.click(fixture.submit);
 
@@ -863,7 +1040,7 @@ describe.each([
         let inputs = 0;
         fixture.host.addEventListener('input', () => inputs++);
 
-        await fixture.user.type(form.urlInput.inputElement, '/example');
+        await fixture.user.type(getPopoverInput(form, 'url'), '/example');
 
         expect(fixture.host.value).toBe('');
         expect(inputs).toBe(0);
@@ -872,8 +1049,8 @@ describe.each([
     it('POP-013 submits with one editor input event and without submitting the outer form', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
         const form = await openForm(fixture);
-        await fixture.user.click(form.urlInput.inputElement);
-        await fixture.user.type(form.urlInput.inputElement, '/example');
+        await fixture.user.click(getPopoverInput(form, 'url'));
+        await fixture.user.type(getPopoverInput(form, 'url'), '/example');
 
         let inputs = 0;
         let submits = 0;
@@ -883,7 +1060,7 @@ describe.each([
             submits++;
         });
 
-        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+        await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
         await fixture.host.updateComplete;
 
         expect(submits).toBe(0);
@@ -895,36 +1072,36 @@ describe.each([
     it('POP-003 cancels without modifying content and clears fields when reopened', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
         const form = await openForm(fixture);
-        await fixture.user.click(form.urlInput.inputElement);
-        await fixture.user.type(form.urlInput.inputElement, '/discard');
-        await fixture.user.type(form.textInput.inputElement, 'Discard text');
-        await fixture.user.click(form.formElement.querySelector('button[type="button"]'));
+        await fixture.user.click(getPopoverInput(form, 'url'));
+        await fixture.user.type(getPopoverInput(form, 'url'), '/discard');
+        await fixture.user.type(getPopoverInput(form, 'text'), 'Discard text');
+        await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="button"]'));
         await expect.poll(() => form.matches(':popover-open')).toBe(false);
 
         expect(fixture.host.value).toBe('');
         await openForm(fixture);
-        expect(form.urlInput.inputElement.value).toBe('');
-        expect(form.textInput.inputElement.value).toBe('');
-        expect(form.urlInput.invalid).toBe(false);
+        expect(getPopoverInput(form, 'url').value).toBe('');
+        expect(getPopoverInput(form, 'text').value).toBe('');
+        expect(isPopoverInputInvalid(form, 'url')).toBe(false);
     });
 
     it('POP-014 rejects an empty URL and allows saving after correction', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description"></rich-text-editor>');
         await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
         const form = await openForm(fixture);
-        const save = form.formElement.querySelector('button[type="submit"]');
+        const save = getPopoverNativeForm(form).querySelector('button[type="submit"]');
 
         await fixture.user.click(save);
 
         expect(form.matches(':popover-open')).toBe(true);
         expect(fixture.host.value).toBe('');
-        await expect.poll(() => form.urlInput.invalid).toBe(true);
-        expect(form.urlInput.validationMessage).not.toBe('');
-        await form.urlInput.updateComplete;
-        expect(form.urlInput.querySelector('[data-role="error-message"]')?.textContent.trim()).toBeTruthy();
+        await expect.poll(() => isPopoverInputInvalid(form, 'url')).toBe(true);
+        expect(getPopoverInput(form, 'url').validationMessage).not.toBe('');
+        await fixture.host.updateComplete;
+        expect(getPopoverControl(form, 'url').querySelector('[data-role="error-message"]')?.textContent.trim()).toBeTruthy();
 
-        await fixture.user.type(form.urlInput.inputElement, '/corrected');
-        expect(form.urlInput.inputElement.value).toBe('/corrected');
+        await fixture.user.type(getPopoverInput(form, 'url'), '/corrected');
+        expect(getPopoverInput(form, 'url').value).toBe('/corrected');
         expect(fixture.host.value).toBe('');
         await fixture.user.click(save);
 
@@ -937,24 +1114,24 @@ describe.each([
         await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
         const originalValue = fixture.host.value;
         const form = await openForm(fixture);
-        await fixture.user.type(form.textInput.inputElement, 'Discard this');
-        expect(form.textInput.inputElement.value).toBe('Discard this');
-        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
-        await expect.poll(() => form.urlInput.invalid).toBe(true);
-        expect(form.urlInput.validationMessage).not.toBe('');
+        await fixture.user.type(getPopoverInput(form, 'text'), 'Discard this');
+        expect(getPopoverInput(form, 'text').value).toBe('Discard this');
+        await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
+        await expect.poll(() => isPopoverInputInvalid(form, 'url')).toBe(true);
+        expect(getPopoverInput(form, 'url').validationMessage).not.toBe('');
 
-        await fixture.user.click(form.formElement.querySelector('button[type="button"]'));
+        await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="button"]'));
         await expect.poll(() => form.matches(':popover-open')).toBe(false);
         expect(fixture.host.value).toBe(originalValue);
         await expect.poll(() => document.activeElement).toBe(getEditorElement(fixture));
         await openForm(fixture);
 
-        expect(form.urlInput.inputElement.value).toBe('');
-        expect(form.textInput.inputElement.value).toBe('');
-        expect(form.urlInput.invalid).toBe(false);
-        expect(form.urlInput.validationMessage).toBe('');
-        await form.urlInput.updateComplete;
-        expect(form.urlInput.querySelector('[data-role="error-message"]')).toBeNull();
+        expect(getPopoverInput(form, 'url').value).toBe('');
+        expect(getPopoverInput(form, 'text').value).toBe('');
+        expect(isPopoverInputInvalid(form, 'url')).toBe(false);
+        expect(getPopoverInput(form, 'url').validity.customError).toBe(false);
+        await fixture.host.updateComplete;
+        expect(getPopoverControl(form, 'url').querySelector('[data-role="error-message"]')).toBeNull();
         expect(fixture.host.value).toBe(originalValue);
     });
 
@@ -965,6 +1142,7 @@ describe.each([
         await fixture.user.click(editor);
         const text = editor.querySelector('p').firstChild;
         window.getSelection().setBaseAndExtent(text, 7, text, command === 'link' ? 13 : 7);
+
         if (command === 'link') {
             expect(window.getSelection()?.toString()).toBe('target');
         } else {
@@ -973,14 +1151,15 @@ describe.each([
         }
 
         const form = await openForm(fixture);
-        await fixture.user.click(form.urlInput.inputElement);
-        await fixture.user.type(form.urlInput.inputElement, '/positioned');
-        expect(form.urlInput.inputElement.value).toBe('/positioned');
+        await fixture.user.click(getPopoverInput(form, 'url'));
+        await fixture.user.type(getPopoverInput(form, 'url'), '/positioned');
+        expect(getPopoverInput(form, 'url').value).toBe('/positioned');
         expect(editor.textContent).toBe('Before target after');
-        await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
-        await expect.poll(() => form.matches(':popover-open')).toBe(false);
 
+        await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
+        await expect.poll(() => form.matches(':popover-open')).toBe(false);
         const output = new DOMParser().parseFromString(fixture.host.value, 'text/html').body;
+
         if (command === 'link') {
             expect(output.querySelectorAll('a')).toHaveLength(1);
             expect(output.querySelector('a')?.textContent).toBe('target');
@@ -1005,15 +1184,15 @@ describe.each([
             await fixture.user.click(fixture.querySelector('[data-role="editor"] a p'));
             const form = await openForm(fixture);
 
-            expect(form.textInput.hidden).toBe(true);
-            expect(form.urlInput.inputElement.value).toBe('/old');
-            expect(form.checkInput.checked).toBe(true);
-            await fixture.user.clear(form.urlInput.inputElement);
-            await fixture.user.type(form.urlInput.inputElement, '/new');
-            expect(form.urlInput.inputElement.value).toBe('/new');
-            await fixture.user.click(form.checkInput.inputElement);
-            expect(form.checkInput.checked).toBe(false);
-            await fixture.user.click(form.formElement.querySelector('button[type="submit"]'));
+            expect(getPopoverControl(form, 'text').hidden).toBe(true);
+            expect(getPopoverInput(form, 'url').value).toBe('/old');
+            expect(getPopoverInput(form, 'blank').checked).toBe(true);
+            await fixture.user.clear(getPopoverInput(form, 'url'));
+            await fixture.user.type(getPopoverInput(form, 'url'), '/new');
+            expect(getPopoverInput(form, 'url').value).toBe('/new');
+            await fixture.user.click(getPopoverInput(form, 'blank'));
+            expect(getPopoverInput(form, 'blank').checked).toBe(false);
+            await fixture.user.click(getPopoverNativeForm(form).querySelector('button[type="submit"]'));
             await expect.poll(() => form.matches(':popover-open')).toBe(false);
 
             const output = new DOMParser().parseFromString(fixture.host.value, 'text/html').body;
@@ -1032,7 +1211,7 @@ describe.each([
         const lockedWheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 100 });
         fixture.form.dispatchEvent(lockedWheel);
         expect(lockedWheel.defaultPrevented).toBe(true);
-        await fixture.user.click(form.urlInput.inputElement);
+        await fixture.user.click(getPopoverInput(form, 'url'));
 
         form.hidePopover();
 
@@ -1412,20 +1591,21 @@ Aşağıdaki case'ler Bold, Italic, Underline, Strike ve Inline Code için param
 
 ### Popover Integration (Link ve Image)
 
-Burada [x], çalıştırılabilir test bulunduğunu belirtir; testin başarılı olduğunu değil.
+Link ve image senaryoları controller'ların ürettiği native formları sınar.
+Ortak yardımcılar yalnızca DOM üzerinden okur; controller alanlarına bağlı değildir.
 
 * [x] POP-001 — Kapalı popup'ın required alanları dış form submit'ini engellemez; alanlar kendi formuna bağlıdır.
 * [x] POP-002 — Popup düzenlemesi editor input'u üretmez.
 * [x] POP-003 — Cancel içeriği değiştirmez; yeniden açılışta alanlar ve validasyon temizdir.
 * [x] POP-004 — Native kapanış scroll kilidini kaldırır ve odağı editöre döndürür.
 * [x] POP-005 — Popup açıkken disconnect scroll kilidini temizler.
-* [ ] POP-006 — Escape popup'ı kapatır; alanlar, validasyon, scroll ve focus temizlenir.
-* [ ] POP-007 — Dışarı tıklama popup'ı kapatır ve aynı kapanış temizliğini uygular.
-* [ ] POP-008 — Viewport kenarlarında popup görünür alanda konumlanır.
-* [ ] POP-009 — Birden fazla editorün popup modelleri ve scroll kilitleri birbirinden bağımsızdır.
+* [x] POP-006 — Escape popup'ı kapatır; alanlar, validasyon, scroll ve focus temizlenir.
+* [x] POP-007 — Dışarı tıklama popup'ı kapatır ve aynı kapanış temizliğini uygular.
+* [x] POP-008 — Viewport kenarlarında popup görünür alanda konumlanır.
+* [x] POP-009 — Birden fazla editorün popup modelleri ve scroll kilitleri birbirinden bağımsızdır.
 * [x] POP-010 — Popup açma/kaydetme seçimi korur; link/görsel doğru konuma eklenir.
 * [x] POP-011 — Blok link düzenleme metin alanını gizler ve blok içeriğini korur.
-* [ ] POP-012 — Disconnect/reconnect sonrasında popup'lar duplicate event üretmeden çalışır.
+* [x] POP-012 — Disconnect/reconnect sonrasında popup'lar duplicate event üretmeden çalışır.
 * [x] POP-013 — Başarılı kayıt tek editor input'u üretir ve dış form submit'ine sızmaz.
 * [x] POP-014 — Boş URL kaydı engeller; hata gösterildikten sonra geçerli URL ile kayıt yapılabilir.
 * [x] POP-015 — Validasyon hatasından sonra iptal/yeniden açılış alanları ve hatayı temizler; mevcut içerik korunur.
