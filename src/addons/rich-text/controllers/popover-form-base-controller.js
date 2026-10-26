@@ -139,7 +139,8 @@ export default class PopoverFormBaseController extends ControllerBase {
         const popoverRect = popover.getBoundingClientRect();
         const spaceAbove = coords.top - viewportPadding - gap;
         const spaceBelow = window.innerHeight - coords.bottom - viewportPadding - gap;
-        const openAbove = spaceAbove > spaceBelow;
+
+        const openAbove = spaceBelow < popoverRect.height && spaceAbove > spaceBelow;
         const preferredTop = openAbove ? coords.top - gap - popoverRect.height : coords.bottom + gap;
         const maxTop = window.innerHeight - popoverRect.height - viewportPadding;
         const maxLeft = window.innerWidth - popoverRect.width - viewportPadding;
