@@ -522,6 +522,282 @@ describe('SelectBox - Options property', () => {
     });
 });
 
+describe('SelectBox - Options normalization', () => {
+    it('normalizes numeric options including zero without treating zero as a placeholder', async () => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+
+        fixture.host.options = [0, 42];
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.querySelector('option[value="0"]').textContent).toBe('0');
+        expect(fixture.input.querySelector('option[value="42"]').textContent).toBe('42');
+        expect(fixture.host.placeholder).toBe('');
+    });
+
+    it('ignores a div supplied through the default slot while preserving valid options', async () => {
+        const warnSpy = vi.spyOn(console, 'warn');
+        const errorSpy = vi.spyOn(console, 'error');
+
+        try {
+            const fixture = await initSelectBox(`
+                <select-box label="City">
+                    <option value="ist" selected>Istanbul</option>
+                    <div>Ankara</div>
+                    <option value="izm">Izmir</option>
+                </select-box>
+            `);
+            await fixture.host.updateComplete;
+
+            expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ist', 'izm']);
+            expect(fixture.input.querySelector('option[value="ist"]').textContent).toBe('Istanbul');
+            expect(fixture.input.querySelector('option[value="izm"]').textContent).toBe('Izmir');
+            expect(fixture.input.textContent).not.toContain('Ankara');
+            expect(fixture.input.querySelector('optgroup')).toBeNull();
+            expect(fixture.host.value).toBe('ist');
+            expect(fixture.input.value).toBe('ist');
+            expect(warnSpy).not.toHaveBeenCalled();
+            expect(errorSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+            errorSpy.mockRestore();
+        }
+    });
+
+    it.each(['option', 'custom-option'])('normalizes default slot %s elements through the options API', async tagName => {
+        const fixture = await initSelectBox(`
+            <select-box label="City">
+                <${tagName} value="ank" selected>Ankara</${tagName}>
+                <${tagName} value="ist">Istanbul</${tagName}>
+            </select-box>
+        `);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.options).toHaveLength(2);
+        expect(fixture.host.options.every(node => node.localName === tagName)).toBe(true);
+        const option = fixture.input.querySelector('option[value="ank"]');
+        expect(option).not.toBeNull();
+        expect(option.textContent).toBe('Ankara');
+        expect(fixture.input.querySelector('option[value="ist"]').textContent).toBe('Istanbul');
+        expect(fixture.input.querySelector('optgroup')).toBeNull();
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+    });
+
+    it('ignores template indentation before resolving the empty-value placeholder', async () => {
+        const fixture = await initSelectBox(`
+            <select-box label="City">
+                <template prop="options">
+                    <option value="">Choose city</option>
+                    <option value="ank">Ankara</option>
+                </template>
+            </select-box>
+        `);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.placeholder).toBe('Choose city');
+        expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ank']);
+        expect(fixture.input.options[0].textContent).toBe('Choose city');
+
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ank']);
+        expect(fixture.input.querySelector('optgroup')).toBeNull();
+    });
+
+    it.each([
+        ['element without option properties', '<div>Ankara</div>'],
+        ['attribute-only element', '<div value="ank">Ankara</div>'],
+        ['non-whitespace text node', 'Ankara'],
+        ['comment node', '<!-- Ankara -->'],
+    ])('silently ignores slotted %s while preserving valid options', async (_name, markup) => {
+        const warnSpy = vi.spyOn(console, 'warn');
+        const errorSpy = vi.spyOn(console, 'error');
+
+        try {
+            const fixture = await initSelectBox(`
+                <select-box label="City">
+                    <template>
+                        <option value="ist" selected>Istanbul</option>
+                        ${markup}
+                        <option value="izm">Izmir</option>
+                    </template>
+                </select-box>
+            `);
+            await fixture.host.updateComplete;
+
+            expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ist', 'izm']);
+            expect(fixture.input.querySelector('option[value="ist"]').textContent).toBe('Istanbul');
+            expect(fixture.input.querySelector('option[value="izm"]').textContent).toBe('Izmir');
+            expect(fixture.input.textContent).not.toContain('Ankara');
+            expect(fixture.input.querySelector('optgroup')).toBeNull();
+            expect(fixture.host.value).toBe('ist');
+            expect(fixture.input.value).toBe('ist');
+            expect(warnSpy).not.toHaveBeenCalled();
+            expect(errorSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+            errorSpy.mockRestore();
+        }
+    });
+
+    it.each([
+        ['null', null],
+        ['undefined', undefined],
+        ['true', true],
+        ['false', false],
+    ])('silently ignores %s in the options API while preserving valid entries', async (_name, entry) => {
+        const fixture = await initSelectBox('<select-box label="City" value="ist"></select-box>');
+        const warnSpy = vi.spyOn(console, 'warn');
+        const errorSpy = vi.spyOn(console, 'error');
+
+        try {
+            const entries = ['ist', { value: 'izm', text: 'Izmir' }];
+            fixture.host.options = [entries[0], entry, entries[1]];
+            await fixture.host.updateComplete;
+
+            expect(fixture.host.options).toEqual(entries);
+            expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ist', 'izm']);
+            expect(fixture.input.querySelector('option[value="ist"]').textContent).toBe('ist');
+            expect(fixture.input.querySelector('option[value="izm"]').textContent).toBe('Izmir');
+            expect(fixture.host.placeholder).toBe('');
+            expect(fixture.input.querySelector('optgroup')).toBeNull();
+            expect(fixture.host.value).toBe('ist');
+            expect(fixture.input.value).toBe('ist');
+            expect(warnSpy).not.toHaveBeenCalled();
+            expect(errorSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+            errorSpy.mockRestore();
+        }
+    });
+
+    it('normalizes primitive group entries through the options field', async () => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+
+        fixture.host.options = [{ label: 'Values', options: ['one', 0] }];
+        await fixture.host.updateComplete;
+
+        const group = fixture.input.querySelector('optgroup');
+        expect(group).not.toBeNull();
+        expect(group.label).toBe('Values');
+        expect(Array.from(group.children, option => option.getAttribute('value'))).toEqual(['one', '0']);
+        expect(Array.from(group.children, option => option.textContent)).toEqual(['one', '0']);
+    });
+
+    it('accepts option-like objects and elements through the group options field', async () => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+        const node = Object.assign(document.createElement('div'), {
+            value: 'ist',
+            text: 'Istanbul',
+            selected: true,
+        });
+
+        fixture.host.options = [{ label: 'Cities', options: [{ value: 'ank', text: 'Ankara' }, node] }];
+        await fixture.host.updateComplete;
+
+        const group = fixture.input.querySelector('optgroup');
+        expect(group).not.toBeNull();
+        expect(Array.from(group.children, option => option.getAttribute('value'))).toEqual(['ank', 'ist']);
+        expect(Array.from(group.children, option => option.textContent)).toEqual(['Ankara', 'Istanbul']);
+        expect(fixture.host.value).toBe('ist');
+        expect(fixture.input.value).toBe('ist');
+    });
+
+    it('ignores an empty object through the group options field while preserving valid children', async () => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+
+        fixture.host.options = [
+            {
+                label: 'Cities',
+                options: [{ value: 'ank', text: 'Ankara', selected: true }, {}, { value: 'ist', text: 'Istanbul' }],
+            },
+        ];
+        await fixture.host.updateComplete;
+
+        const group = fixture.input.querySelector('optgroup');
+        expect(group).not.toBeNull();
+        expect(group.label).toBe('Cities');
+        expect(Array.from(group.children, option => option.getAttribute('value'))).toEqual(['ank', 'ist']);
+        expect(Array.from(group.children, option => option.textContent)).toEqual(['Ankara', 'Istanbul']);
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+    });
+
+    it.each(['array', 'HTMLCollection', 'NodeList'])('filters group children from a %s to native and custom option elements', async sourceType => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+        const container = document.createElement('div');
+        const nativeOption = document.createElement('option');
+        nativeOption.value = 'ank';
+        nativeOption.text = 'Ankara';
+        const customOption = document.createElement('custom-option');
+        customOption.value = 'ist';
+        customOption.textContent = 'Istanbul';
+        customOption.selected = true;
+        const div = Object.assign(document.createElement('div'), { value: 'izm', text: 'Izmir' });
+        container.append(nativeOption, div, document.createTextNode('Ignored text'), document.createComment('Ignored comment'), customOption);
+        const children =
+            sourceType === 'HTMLCollection'
+                ? container.children
+                : sourceType === 'NodeList'
+                  ? container.childNodes
+                  : [...container.childNodes, 'primitive', 0, { value: 'obj', text: 'Object' }];
+
+        fixture.host.options = [{ label: 'Cities', children }];
+        await fixture.host.updateComplete;
+
+        const group = fixture.input.querySelector('optgroup');
+        expect(group).not.toBeNull();
+        expect(group.label).toBe('Cities');
+        expect(Array.from(group.children, option => option.getAttribute('value'))).toEqual(['ank', 'ist']);
+        expect(Array.from(group.children, option => option.textContent)).toEqual(['Ankara', 'Istanbul']);
+        expect(fixture.host.value).toBe('ist');
+        expect(fixture.input.value).toBe('ist');
+    });
+
+    it.each(['empty', 'unsupported-only'])('preserves an empty group when children are %s', async sourceType => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+        const children = sourceType === 'empty' ? [] : [document.createElement('div'), 'one', 0, { value: 'ank' }];
+
+        fixture.host.options = [{ label: 'Empty cities', children }];
+        await fixture.host.updateComplete;
+
+        const group = fixture.input.querySelector('optgroup');
+        expect(group).not.toBeNull();
+        expect(group.label).toBe('Empty cities');
+        expect(group.children).toHaveLength(0);
+    });
+
+    it.each(['top-level', 'group'])('replaces previous options while ignoring a null %s entry', async location => {
+        const fixture = await initSelectBox('<select-box label="X"></select-box>');
+        const previousOptions = [
+            { value: '', text: 'Choose city' },
+            { value: 'ank', text: 'Ankara', selected: true },
+        ];
+        fixture.host.options = previousOptions;
+        await fixture.host.updateComplete;
+        const entries = [{ value: 'ist', text: 'Istanbul', selected: true }, null, { value: 'izm', text: 'Izmir' }];
+
+        fixture.host.options = location === 'top-level' ? entries : [{ label: 'Cities', options: entries }];
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ist');
+        expect(fixture.host.placeholder).toBe('Choose city');
+        expect(fixture.host.hasOptions).toBe(true);
+        expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ist', 'izm']);
+        expect(fixture.input.querySelector('option[value="ank"]')).toBeNull();
+        expect(fixture.input.querySelector('option[value="ist"]').textContent).toBe('Istanbul');
+        expect(fixture.input.querySelector('option[value="izm"]').textContent).toBe('Izmir');
+        expect(fixture.input.querySelectorAll('optgroup')).toHaveLength(location === 'group' ? 1 : 0);
+
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(Array.from(fixture.input.options, option => option.value)).toEqual(['', 'ist', 'izm']);
+        expect(fixture.input.value).toBe('ist');
+    });
+});
+
 describe('SelectBox - validateNode guards', () => {
     it('returns true for non-default slots', async () => {
         const validateSpy = vi.spyOn(SelectBox.prototype, 'validateNode');
@@ -533,12 +809,7 @@ describe('SelectBox - validateNode guards', () => {
         validateSpy.mockRestore();
     });
 
-    it('returns false and warns when slotted nodes exist while options property is already set', async () => {
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        const validateSpy = vi.spyOn(SelectBox.prototype, 'validateNode');
-
-        // options connect'ten önce atanmalı ki bağlama sırasında hasOptions true olsun;
-        // "selected" olmayan bir değer #syncValueAfterOptionsChange içinde henüz render edilmemiş inputElement'e erişip patlar
+    it('replaces previously assigned options with default slot options', async () => {
         const host = document.createElement('select-box');
         host.setAttribute('id', 'x');
         host.setAttribute('label', 'X');
@@ -547,40 +818,45 @@ describe('SelectBox - validateNode guards', () => {
         const node = document.createElement('option');
         node.value = 'two';
         node.textContent = 'Two';
-        host.appendChild(node);
+        node.selected = true;
+        const otherNode = document.createElement('option');
+        otherNode.value = 'three';
+        otherNode.textContent = 'Three';
+        host.append(node, otherNode);
 
         document.body.appendChild(host);
         await host.updateComplete;
+        await host.updateComplete;
 
-        expect(validateSpy).toHaveBeenCalledWith(node, 'default');
-        expect(validateSpy).toHaveReturnedWith(false);
-        expect(warnSpy).toHaveBeenCalledWith('Options are already set via property. Ignoring slotted nodes.');
+        expect(host.options).toEqual([node, otherNode]);
+        expect(Array.from(host.inputElement.options, option => option.value)).toEqual(['', 'two', 'three']);
+        expect(host.value).toBe('two');
+        expect(host.inputElement.value).toBe('two');
 
-        warnSpy.mockRestore();
-        validateSpy.mockRestore();
         host.remove();
     });
 
-    it('returns false and logs error for invalid child element types', async () => {
-        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        const validateSpy = vi.spyOn(SelectBox.prototype, 'validateNode');
-
+    it('preserves previously assigned options when only named slot content exists', async () => {
         const host = document.createElement('select-box');
         host.setAttribute('id', 'x');
         host.setAttribute('label', 'X');
+        const options = [{ value: 'one', text: 'One', selected: true }];
+        host.options = options;
 
-        const invalidNode = document.createElement('div');
-        host.appendChild(invalidNode);
+        const suffix = document.createElement('span');
+        suffix.slot = 'suffix';
+        suffix.textContent = 'icon';
+        host.appendChild(suffix);
 
         document.body.appendChild(host);
         await host.updateComplete;
+        await host.updateComplete;
 
-        expect(validateSpy).toHaveBeenCalledWith(invalidNode, 'default');
-        expect(validateSpy).toHaveReturnedWith(false);
-        expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Only <option> and <optgroup> elements are allowed as children of'));
+        expect(host.options).toEqual(options);
+        expect(Array.from(host.inputElement.options, option => option.value)).toEqual(['', 'one']);
+        expect(host.value).toBe('one');
+        expect(host.inputElement.value).toBe('one');
 
-        errorSpy.mockRestore();
-        validateSpy.mockRestore();
         host.remove();
     });
 });

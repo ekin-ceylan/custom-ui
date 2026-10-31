@@ -1,7 +1,6 @@
 import { html, nothing } from 'lit';
 import { spread } from '../modules/spread.js';
 import HtmlBaseModel from './HtmlBaseModel.js';
-import { ifDefined } from '../modules/utilities.js';
 
 /**
  * Represents an option model for select elements, encapsulating properties such as `label`, `text`, `value`, `selected`, and `disabled`.
@@ -11,12 +10,6 @@ import { ifDefined } from '../modules/utilities.js';
  * @extends HtmlBaseModel
  */
 export default class Option extends HtmlBaseModel {
-    label = '';
-    text = '';
-    /** @type {string} */
-    value = '';
-    selected = false;
-
     /**
      * Gets the display text for rendering.
      * Prefers explicit text; falls back to label then value.
@@ -32,7 +25,7 @@ export default class Option extends HtmlBaseModel {
 
     get htmlElement() {
         return html`<option
-            label=${ifDefined(this.labelAttr)}
+            label=${this.labelAttr}
             value=${this.value}
             ?selected=${this.selected}
             ?disabled=${this.disabled}
@@ -44,11 +37,18 @@ export default class Option extends HtmlBaseModel {
     }
 
     constructor(data = {}) {
+        if (typeof data === 'string' || typeof data === 'number') {
+            data = { value: String(data) };
+        }
         super(data);
 
+        /** Label used for display when text is empty, or as the native option label. @type {string} */
         this.label = data.label ?? '';
+        /** Display text, taking precedence over label and value. @type {string} */
         this.text = data.text ?? '';
+        /** Option value used for selection and form submission. @type {string} */
         this.value = data.value ?? '';
+        /** Whether the option is marked as selected. @type {boolean} */
         this.selected = data.selected ?? false;
     }
 }

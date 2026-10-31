@@ -20,6 +20,10 @@
 
     <body>
         <form>
+            <combo-box field-id="color" label="Color" placeholder="Pick">
+                <option value="r">Red</option>
+                <option value="g" selected>Green</option>
+            </combo-box>
             <controller-test></controller-test>
             <br />
             <br />
@@ -46,7 +50,7 @@
             clearable
             style="width: 100%; height: 300px"
             maxlength="50"
-            minlength="10"
+            minlength="20"
         ></rich-text-editor>
 
         <pre>&lt;table class="my-table"&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td&gt;test&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;</pre>

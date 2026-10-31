@@ -107,9 +107,7 @@ export default class TextAreaBase extends StandardControlBase {
         if (slotName === 'default') {
             return this.#validateDefaultNode(node);
         }
-        if (slotName === 'description') {
-            return this.#validateDescriptionNode(node);
-        }
+
         return true;
     }
 
@@ -155,16 +153,6 @@ export default class TextAreaBase extends StandardControlBase {
             this.#slotContent += /** @type {HTMLElement} */ (node).outerHTML ?? '';
         }
 
-        return false;
-    }
-
-    /**
-     * Validates the content of a description slot node and updates the internal description accordingly.
-     * @param {HTMLElement|Text} node The node to validate.
-     * @returns {boolean}
-     */
-    #validateDescriptionNode(node) {
-        this.description = node;
         return false;
     }
 

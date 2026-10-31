@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { findLastBy, ifDefined } from '../../modules/utilities.js';
+import { isEmpty, ifDefined } from '../../modules/utilities.js';
 import ComboOption from '../../models/ComboOption.js';
 import CustomOption from '../parts/custom-option.js';
 import Keys from '../../enums/Keys.js';
@@ -30,6 +30,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
         };
     }
 
+    #slotOptions = [];
     /** @type {ComboOption[]} */
     #optionList = [];
     /** @type {ComboOption | null} */
@@ -59,20 +60,28 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
     }
 
     get options() {
-        return this.#options.length ? this.#options : this.#optionList; // SLOT ÜZERİNDEN GELİYORSA OPTIONS BOŞ OLUYOR !!
+        return this.#options.length ? this.#options : this.#optionList;
     }
     set options(val) {
-        if (!Array.isArray(val)) {
-            throw new TypeError('options must be an array');
-        }
+        if (!Array.isArray(val)) throw new TypeError('options must be an array');
 
-        this.#options = val;
-        this.#optionList = this.options.map(this.#toListElement.bind(this));
+        const oldValue = this.#options;
+        this.#options = [];
+        this.#optionList = [];
+        let lastSelected = null;
 
-        const opt = findLastBy(this.#optionList, opt => opt.selected);
-        this.#onSelect(opt || null, false);
+        val.forEach(o => {
+            const option = this.#toListElement(o);
+            if (option) this.#options.push(o);
+            if (!isEmpty(option?.value)) {
+                this.#optionList.push(option);
+                if (option.selected) lastSelected = option;
+            }
+        });
 
-        this.requestUpdate();
+        this.#onSelect(lastSelected, false);
+        this.#initialValue = lastSelected?.value;
+        this.requestUpdate('options', oldValue);
         if (this.open) this.setListPosition();
     }
 
@@ -154,27 +163,13 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
     validateNode(node, slotName) {
         if (slotName != 'default') return true;
 
-        const hasOptions = this.#options?.length > 0;
-        const isAllowedType = node instanceof HTMLOptionElement || node instanceof CustomOption;
+        this.#slotOptions.push(node);
+        return false;
+    }
 
-        if (hasOptions) {
-            console.warn('Options are already set via property. Ignoring slotted nodes.');
-            return false;
-        }
-
-        if (!isAllowedType) {
-            console.error(`Only \`HTMLOptionElement\` and \`CustomOption\` are allowed as children of \`${this.tagName.toLowerCase()}\`.`);
-            return false;
-        }
-
-        const option = this.#parseOption(node);
-        this.#optionList.push(option);
-        if (option.selected) {
-            this.#initialValue = option.value;
-            this.#onSelect(option, false);
-        }
-
-        return false; // abort default slotting process
+    /** @inheritdoc */
+    afterSlotsBinded() {
+        if (this.#slotOptions.length > 0) this.options = this.#slotOptions;
     }
 
     /** @override @protected */
@@ -437,7 +432,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
     #parseOption(opt) {
         const option = new ComboOption(opt);
         option.id = `option-${generateUniqueId()}`;
-        if (this.value === opt.value) option.selected = true;
+        if (this.value === option.value) option.selected = true;
 
         return option;
     }
@@ -455,6 +450,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
     }
 
     #toListElement(raw) {
+        if (raw == null) return null;
         if (raw instanceof HTMLOptionElement || raw instanceof CustomOption || typeof raw === 'object') {
             return this.#parseOption(raw);
         }
@@ -464,7 +460,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
             return this.#parseOption(opt);
         }
 
-        throw new TypeError(`Invalid option entry: ${String(raw)}`);
+        return null;
     }
 
     // #endregion PRIVATE METHODS

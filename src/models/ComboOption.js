@@ -1,4 +1,4 @@
-import { html } from 'lit';
+import { html, nothing } from 'lit';
 import { spread } from '../modules/spread.js';
 import { ifDefined, sanitizeHtml } from '../modules/utilities.js';
 import ListboxItem from './ListboxItem.js';
@@ -54,8 +54,8 @@ export default class ComboOption extends ListboxItem {
                 ${spread(this.ariaset, 'aria-')}
                 ?data-active=${isActive}
                 data-value=${this.value}
-                ?aria-disabled=${!!this.disabled}
-                ?aria-selected=${this.selected}
+                aria-disabled=${this.disabled ? 'true' : nothing}
+                aria-selected=${this.selected ? 'true' : 'false'}
                 .innerHTML=${this.displayContent}
             ></div>
         `;
@@ -67,7 +67,7 @@ export default class ComboOption extends ListboxItem {
         this.innerHTML = data.innerHTML ?? '';
         this.label = data.label ?? '';
         this.text = data.text ?? '';
-        this.value = data.value ?? '';
-        this.selected = data.selected ?? false;
+        this.value = data.value ?? this.dataset?.value ?? '';
+        this.selected = data.selected ?? (this.dataset?.selected != undefined || this.ariaset?.selected === 'true');
     }
 }

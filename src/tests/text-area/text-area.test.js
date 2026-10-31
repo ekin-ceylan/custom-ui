@@ -273,7 +273,7 @@ describe('Description tests', () => {
     });
 
     it('renders description slot when provided', async () => {
-        const fixture = await initTestFixture('<text-area label="Description"><span slot="description">Slotted helper</span></text-area>');
+        const fixture = await initTestFixture('<text-area label="Description"><span prop="description">Slotted helper</span></text-area>');
         await fixture.host.updateComplete;
         const descElement = fixture.querySelector('[data-role="description"]');
 
@@ -282,7 +282,7 @@ describe('Description tests', () => {
     });
 
     it('prefers property over slot when both are provided', async () => {
-        const fixture = await initTestFixture('<text-area label="Description"><span slot="description">Slotted</span></text-area>');
+        const fixture = await initTestFixture('<text-area label="Description"><span prop="description">Slotted</span></text-area>');
 
         fixture.host.description = 'Property text';
         await fixture.host.updateComplete;

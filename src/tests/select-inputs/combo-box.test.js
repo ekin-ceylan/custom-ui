@@ -98,7 +98,7 @@ describe('ComboBox - Options & selection', () => {
         const optionDivs = getOptionDivs(fixture);
         expect(optionDivs.length).toBe(2);
 
-        const selected = optionDivs.find(el => el.hasAttribute('aria-selected'));
+        const selected = optionDivs.find(el => el.getAttribute('aria-selected') === 'true');
         expect(selected).toBeTruthy();
         expect(selected.dataset.value).toBe('g');
     });
@@ -606,11 +606,8 @@ describe('ComboBox - Options property', () => {
         }).toThrow(/options must be an array/i);
     });
 
-    it('ignores slotted nodes and warns when options are already set via property', async () => {
-        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        const validateSpy = vi.spyOn(ComboBox.prototype, 'validateNode');
-
-        // options connect'ten önce atanmalı ki bağlama sırasında hasOptions true olsun
+    it('replaces previously assigned options with default slot options without warning', async () => {
+        const warnSpy = vi.spyOn(console, 'warn');
         const host = document.createElement('combo-box');
         host.setAttribute('field-id', 'x');
         host.setAttribute('label', 'X');
@@ -619,42 +616,210 @@ describe('ComboBox - Options property', () => {
         const slottedOption = document.createElement('option');
         slottedOption.value = 'two';
         slottedOption.textContent = 'Two';
-        host.appendChild(slottedOption);
+        slottedOption.selected = true;
+        const otherOption = document.createElement('option');
+        otherOption.value = 'three';
+        otherOption.textContent = 'Three';
+        host.append(slottedOption, otherOption);
 
-        document.body.appendChild(host);
-        await host.updateComplete;
+        try {
+            document.body.appendChild(host);
+            await host.updateComplete;
+            await host.updateComplete;
 
-        expect(validateSpy).toHaveBeenCalledWith(slottedOption, 'default');
-        expect(validateSpy).toHaveReturnedWith(false);
-        expect(warnSpy).toHaveBeenCalledWith('Options are already set via property. Ignoring slotted nodes.');
-
-        warnSpy.mockRestore();
-        validateSpy.mockRestore();
-        host.remove();
+            expect(host.options).toEqual([slottedOption, otherOption]);
+            const optionDivs = Array.from(host.querySelectorAll('div[role="listbox"] div[role="option"]'));
+            expect(optionDivs.map(option => option.dataset.value)).toEqual(['two', 'three']);
+            expect(optionDivs.map(option => option.textContent.trim())).toEqual(['Two', 'Three']);
+            expect(host.value).toBe('two');
+            expect(host.inputElement.value).toBe('two');
+            expect(host.querySelector('div[data-role="display"]').textContent.trim()).toBe('Two');
+            expect(warnSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+            host.remove();
+        }
     });
 
-    it('rejects unsupported slotted children and logs an error', async () => {
-        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-        const validateSpy = vi.spyOn(ComboBox.prototype, 'validateNode');
+    it('silently ignores unsupported slotted children while preserving valid options', async () => {
+        const warnSpy = vi.spyOn(console, 'warn');
+        const errorSpy = vi.spyOn(console, 'error');
 
-        const host = document.createElement('combo-box');
-        host.setAttribute('field-id', 'x');
-        host.setAttribute('label', 'X');
+        try {
+            const fixture = await initComboBox(
+                '<combo-box label="City"><option value="ank" selected>Ankara</option><div>Invalid</div><option value="ist">Istanbul</option></combo-box>'
+            );
+            await fixture.host.updateComplete;
 
-        const invalidChild = document.createElement('div');
-        invalidChild.textContent = 'Invalid';
-        host.appendChild(invalidChild);
+            const optionDivs = getOptionDivs(fixture);
+            expect(optionDivs.map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+            expect(optionDivs.map(option => option.textContent.trim())).toEqual(['Ankara', 'Istanbul']);
+            expect(fixture.host.value).toBe('ank');
+            expect(fixture.input.value).toBe('ank');
+            expect(fixture.display.textContent.trim()).toBe('Ankara');
+            expect(warnSpy).not.toHaveBeenCalled();
+            expect(errorSpy).not.toHaveBeenCalled();
+        } finally {
+            warnSpy.mockRestore();
+            errorSpy.mockRestore();
+        }
+    });
+});
 
-        document.body.appendChild(host);
-        await host.updateComplete;
+describe('ComboBox - Options normalization', () => {
+    it('clears options and selection when an empty array is assigned', async () => {
+        const fixture = await initComboBox('<combo-box label="City" placeholder="Pick a city"><option value="ank" selected>Ankara</option></combo-box>');
 
-        expect(validateSpy).toHaveBeenCalledWith(invalidChild, 'default');
-        expect(validateSpy).toHaveReturnedWith(false);
-        expect(errorSpy).toHaveBeenCalledWith('Only `HTMLOptionElement` and `CustomOption` are allowed as children of `combo-box`.');
+        fixture.host.options = [];
+        await fixture.host.updateComplete;
 
-        errorSpy.mockRestore();
-        validateSpy.mockRestore();
-        host.remove();
+        expect(fixture.host.options).toEqual([]);
+        expect(getOptionDivs(fixture)).toHaveLength(0);
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+        expect(fixture.display.textContent.trim()).toBe('Pick a city');
+    });
+
+    it('ignores template text while retaining prop-bound options across renders', async () => {
+        const fixture = await initComboBox(`
+            <combo-box label="City" placeholder="Pick a city">
+                <template prop="options">
+                    Ignored text
+                    <option value="ank" selected>Ankara</option>
+                    <option value="ist">Istanbul</option>
+                </template>
+            </combo-box>
+        `);
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+        expect(getOptionDivs(fixture).map(option => option.textContent.trim())).toEqual(['Ankara', 'Istanbul']);
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+        expect(fixture.host.placeholder).toBe('Pick a city');
+
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+        expect(fixture.display.textContent.trim()).toBe('Ankara');
+    });
+
+    it('accepts rich slot content with data-value and matches the initial value', async () => {
+        const fixture = await initComboBox(
+            '<combo-box label="City" value="ank"><div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div></combo-box>'
+        );
+        await fixture.host.updateComplete;
+
+        const optionDivs = getOptionDivs(fixture);
+        expect(optionDivs.map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+        expect(optionDivs[0].querySelector('strong').textContent).toBe('Ankara');
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+        expect(fixture.display.querySelector('strong').textContent).toBe('Ankara');
+    });
+
+    it('sanitizes rich slot content without removing safe formatting', async () => {
+        const fixture = await initComboBox('<combo-box label="City"><div data-value="ank"><strong onclick="void 0">Ankara</strong><script>void 0</script></div></combo-box>');
+        await fixture.host.updateComplete;
+
+        const option = getOptionDivs(fixture)[0];
+        expect(option.dataset.value).toBe('ank');
+        expect(option.querySelector('strong').textContent).toBe('Ankara');
+        expect(option.querySelector('strong').hasAttribute('onclick')).toBe(false);
+        expect(option.querySelector('script')).toBeNull();
+    });
+
+    it('interprets aria-selected="false" as unselected', async () => {
+        const fixture = await initComboBox(
+            '<combo-box label="City"><div data-value="ank" aria-selected="true">Ankara</div><div data-value="ist" aria-selected="false">Istanbul</div></combo-box>'
+        );
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+        expect(fixture.display.textContent.trim()).toBe('Ankara');
+    });
+
+    it.each(['', 'false'])('treats the presence of data-selected="%s" as selected', async attrValue => {
+        const fixture = await initComboBox(
+            `<combo-box label="City"><div data-value="ank" data-selected="true">Ankara</div><div data-value="ist" data-selected="${attrValue}">Istanbul</div></combo-box>`
+        );
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ist');
+        expect(fixture.input.value).toBe('ist');
+        expect(fixture.display.textContent.trim()).toBe('Istanbul');
+    });
+
+    it('leaves rich content unselected when no selection marker is present', async () => {
+        const fixture = await initComboBox('<combo-box label="City" placeholder="Pick a city"><div data-value="ank">Ankara</div><div data-value="ist">Istanbul</div></combo-box>');
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+        expect(fixture.display.textContent.trim()).toBe('Pick a city');
+    });
+
+    it.each(['data-selected', 'aria-selected'])('selects rich content marked with %s="true"', async selectedAttr => {
+        const fixture = await initComboBox(`<combo-box label="City"><div data-value="ank">Ankara</div><div data-value="ist" ${selectedAttr}="true">Istanbul</div></combo-box>`);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ist');
+        expect(fixture.input.value).toBe('ist');
+        expect(fixture.display.textContent.trim()).toBe('Istanbul');
+    });
+
+    it('discards empty slot values without deriving a placeholder from options', async () => {
+        const fixture = await initComboBox(
+            '<combo-box label="City" placeholder="Pick a city"><option value="">Option placeholder</option><div data-value="">Empty div</div><option value="ank">Ankara</option></combo-box>'
+        );
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['ank']);
+        expect(fixture.host.placeholder).toBe('Pick a city');
+        expect(fixture.host.value).toBe('');
+        expect(fixture.display.textContent.trim()).toBe('Pick a city');
+    });
+
+    it.each([
+        ['number', 0],
+        ['string', '0'],
+    ])('retains %s zero while discarding empty API values', async (_type, zero) => {
+        const fixture = await initComboBox('<combo-box label="City" placeholder="Pick a city" value="0"></combo-box>');
+
+        fixture.host.options = ['', { value: '', label: 'Empty object' }, zero];
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['0']);
+        expect(getOptionDivs(fixture)[0].textContent.trim()).toBe('0');
+        expect(fixture.host.value).toBe('0');
+        expect(fixture.input.value).toBe('0');
+        expect(fixture.host.placeholder).toBe('Pick a city');
+    });
+
+    it('resets to the selected value from replacement options', async () => {
+        const fixture = await initComboBox('<combo-box label="City"><option value="ank" selected>Ankara</option><option value="ist">Istanbul</option></combo-box>');
+
+        fixture.host.options = [
+            { value: 'ank', label: 'Ankara' },
+            { value: 'ist', label: 'Istanbul', selected: true },
+        ];
+        await fixture.host.updateComplete;
+        expect(fixture.host.value).toBe('ist');
+
+        fixture.host.value = 'ank';
+        await fixture.host.updateComplete;
+        expect(fixture.host.value).toBe('ank');
+
+        fixture.host.reset();
+        await fixture.host.updateComplete;
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ist');
+        expect(fixture.input.value).toBe('ist');
+        expect(fixture.display.textContent.trim()).toBe('Istanbul');
     });
 });
 

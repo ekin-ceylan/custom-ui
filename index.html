@@ -29,7 +29,15 @@
         <form id="form-1" oninvalid="invalid(event)">
             <text-area id="textarea" label="tekstarea" required>
                 <b>Hi</b>
-                <span slot="description">This is a description for the textarea.</span>
+                <span prop="description">This is a description for the textarea.</span>
+            </text-area>
+            <text-area id="textarea2" label="tekstarea" required>
+                <b>Hi</b>
+                <template prop="description"><strong>Önemli:</strong> Açıklama metni.</template>
+            </text-area>
+            <text-area id="textarea3" label="tekstarea" required>
+                <b>Hi</b>
+                <template prop="description">This is a description for the textarea.</template>
             </text-area>
             <br />
             <br />
@@ -161,6 +169,16 @@
                 <option value="de" data-tracking-id="5" data-test="" aria-test="alm">Almanya</option>
                 <option value="us" label="Amerika">ABD</option>
                 <option value="ch" selected>Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti</option>
+            </select-box>
+            <br />
+            <br />
+            <select-box label="Prop Collect" value="de" placeholder="Seçiniz" required>
+                <template prop="options">
+                    <option value="tr">Türkiye</option>
+                    <option value="de" data-tracking-id="5" data-test="" aria-test="alm">Almanya</option>
+                    <option value="us" label="Amerika">ABD</option>
+                    <option value="ch">Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti Çin Halk Cumhuriyeti</option>
+                </template>
             </select-box>
             <br />
             <br />

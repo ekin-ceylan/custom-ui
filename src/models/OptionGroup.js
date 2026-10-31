@@ -7,7 +7,6 @@ import { findLastBy, isEmpty } from '../modules/utilities.js';
 
 /** Represents an option group model. */
 export default class OptionGroup extends HtmlBaseModel {
-    label = '';
     /** @type {Option[]} */
     #options = [];
 
@@ -20,19 +19,20 @@ export default class OptionGroup extends HtmlBaseModel {
     }
 
     set options(value) {
-        const isCollection =
-            (typeof HTMLCollection !== 'undefined' && value instanceof HTMLCollection) ||
-            (typeof HTMLOptionsCollection !== 'undefined' && value instanceof HTMLOptionsCollection) ||
-            (typeof NodeList !== 'undefined' && value instanceof NodeList);
+        this.#options = [];
+        const isSupportedCollection = value instanceof HTMLCollection || value instanceof NodeList || Array.isArray(value);
 
-        const source = Array.isArray(value) || isCollection ? Array.from(value) : null;
+        if (!isSupportedCollection) return;
 
-        if (!source) {
-            this.#options = [];
-            return;
+        for (const child of value) {
+            if (child == null) continue;
+
+            const option = child instanceof Option ? child : new Option(child);
+
+            if (!isEmpty(option.value)) {
+                this.#options.push(option);
+            }
         }
-
-        this.#options = source.map(child => (child instanceof Option ? child : new Option(child))).filter(c => !isEmpty(c.value));
     }
 
     /**
@@ -72,6 +72,7 @@ export default class OptionGroup extends HtmlBaseModel {
     constructor(data = {}) {
         super(data);
 
+        /** Label displayed as the native optgroup heading. @type {string} */
         this.label = data.label ?? '';
         this.options = data.options ?? [];
 

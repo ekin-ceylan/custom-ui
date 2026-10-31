@@ -16,6 +16,7 @@ import Keys from '../../enums/Keys.js';
 export default class SelectBox extends OptionsControlBase {
     // #region STATICS, FIELDS, GETTERS
 
+#slotOptions = [];
     #cachedInput = undefined;
     #mouseFlag = false;
 
@@ -32,15 +33,21 @@ export default class SelectBox extends OptionsControlBase {
         if (!Array.isArray(val)) throw new TypeError('options must be an array');
 
         const oldValue = this.#options;
-        this.#options = val;
-        
-        const list = val.map(o => this.#toOptionElement(o));
-this.#optionList = list.filter(o => o instanceof OptionGroup || !isEmpty(o.value));
-        const first = list[0];
+        this.#options = [];
+        this.#optionList = [];
 
-        if (first instanceof Option && !this.placeholder && isEmpty(first.value)) {
-            this.placeholder = first.displayText;
+        val.forEach(o => {
+            const option = this.#toOptionElement(o);
+            if (option) this.#options.push(o);
+
+            if (option instanceof OptionGroup || !isEmpty(option?.value)) {
+                this.#optionList.push(option);
+            }
+
+            if (!this.placeholder && this.#optionList.length === 0 && option instanceof Option && isEmpty(option.value)) {
+            this.placeholder = option.displayText;
         }
+});
 
         this.requestUpdate('options', oldValue);
         this.#syncValueAfterOptionsChange();
@@ -93,7 +100,7 @@ this.#optionList = list.filter(o => o instanceof OptionGroup || !isEmpty(o.value
     }
 
     get #valueList() {
-        return this.#optionList.flatMap(o => (o instanceof Option ? o.value : [...o.options.map(opt => opt.value)]));
+        return this.#optionList.flatMap(o => (o instanceof Option ? o.value : o.options.map(opt => opt.value)));
     }
 
     get resetValue() {
@@ -127,43 +134,13 @@ this.#optionList = list.filter(o => o instanceof OptionGroup || !isEmpty(o.value
     validateNode(node, slotName) {
         if (slotName != 'default') return true;
 
-        const hasOptions = this.#options?.length > 0;
-
-        if (hasOptions) {
-            console.warn('Options are already set via property. Ignoring slotted nodes.');
-            return false;
-        }
-
-        const isOptionElement = node instanceof HTMLOptionElement || node instanceof CustomOption;
-        const isOptGroupElement = node instanceof HTMLOptGroupElement || node instanceof CustomOptgroup;
-        const isAllowedType = isOptionElement || isOptGroupElement;
-
-        if (!isAllowedType) {
-            console.error(`Only <option> and <optgroup> elements are allowed as children of ${this.tagName.toLowerCase()}.`);
-            return false;
-        }
-
-        const option = isOptionElement ? new Option(node) : new OptionGroup(node);
-
-        if (isOptionElement && isEmpty(option.value)) {
-if (isEmpty(this.placeholder)) {
-            this.placeholder = /** @type {Option} */ (option).displayText;
-            }
-        } else {
-            this.#optionList.push(option);
-        }
-
-        if (option.selected) this.value = option.value;
-
+        this.#slotOptions.push(node);
         return false;
     }
 
     /** @inheritdoc */
-    afterSlotsBinded(hasProjectedContent) {
-        if (hasProjectedContent) {
-            this.requestUpdate();
-this.#syncValueAfterOptionsChange();
-}
+    afterSlotsBinded() {
+        if (this.#slotOptions.length > 0) this.options = this.#slotOptions;
     }
 
     /** @override @protected */
@@ -275,7 +252,7 @@ this.#syncValueAfterOptionsChange();
 
         if (selected) {
             this.value = selected.value;
-        } else if (this.#valueList.includes(this.value)) {
+        } else if (this.hasValue) {
             void this.updateComplete.then(() => (this.inputElement.value = this.value));
         } else {
             this.value = '';
@@ -292,27 +269,21 @@ this.#syncValueAfterOptionsChange();
         if (raw instanceof Option || raw instanceof OptionGroup) return raw;
         if (raw instanceof HTMLOptionElement || raw instanceof CustomOption) return new Option(raw);
         if (raw instanceof HTMLOptGroupElement || raw instanceof CustomOptgroup) return new OptionGroup(raw);
+        if (typeof raw === 'string' || typeof raw === 'number') return new Option(raw);
 
-        if (typeof raw === 'string' || typeof raw === 'number') {
-            return new Option({ value: String(raw) });
-        }
-
-        if (raw && typeof raw === 'object') {
+        if (raw && typeof raw === 'object' && !(raw instanceof Node)) {
             return this.#isGroupLike(raw) ? new OptionGroup(raw) : new Option(raw);
         }
 
-        throw new TypeError(`Invalid option entry: ${String(raw)}`);
+        return null;
     }
 
     #isGroupLike(object) {
-        const optionsValue = object.options;
-        const childrenValue = object.children;
-        const hasArrayOptions = Array.isArray(optionsValue);
-        const hasArrayChildren = Array.isArray(childrenValue);
-        const hasCollectionChildren =
-            (typeof HTMLCollection !== 'undefined' && childrenValue instanceof HTMLCollection) ||
-            (typeof HTMLOptionsCollection !== 'undefined' && childrenValue instanceof HTMLOptionsCollection) ||
-            (typeof NodeList !== 'undefined' && childrenValue instanceof NodeList);
+        const options = object.options;
+        const children = object.children;
+        const hasArrayOptions = Array.isArray(options);
+        const hasArrayChildren = Array.isArray(children);
+        const hasCollectionChildren = children instanceof HTMLCollection || children instanceof NodeList;
 
         return hasArrayOptions || hasArrayChildren || hasCollectionChildren;
     }

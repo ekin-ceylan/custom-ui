@@ -60,7 +60,7 @@ export default function SlotCollectorMixin(Base) {
                 const clone = node.cloneNode(true);
 
                 if (clone instanceof Element && this.#hiddenByCollector.has(node)) {
-                    clone.removeAttribute('hidden');
+                    clone.removeAttribute(HIDDEN_ATTR);
                 }
 
                 container.appendChild(clone);
@@ -95,8 +95,14 @@ export default function SlotCollectorMixin(Base) {
             // validate nodes and group by slot name
             for (const node of collectedNodes) {
                 const isElement = node instanceof Element;
-                const nodeSlotName = (isElement && node.getAttribute(SLOT_ATTR)) || 'default';
-                isElement && node.removeAttribute(SLOT_ATTR);
+                let nodeSlotName = 'default';
+
+                if (isElement) {
+                    if (this.#setIfProps(node)) continue;
+
+                    nodeSlotName = node.getAttribute(SLOT_ATTR) || 'default';
+                    node.removeAttribute(SLOT_ATTR);
+                }
 
                 // bu ikli if yer değiştirmeli mi?
                 if (node instanceof HTMLTemplateElement) {
@@ -147,6 +153,25 @@ export default function SlotCollectorMixin(Base) {
          */
         afterSlotsBinded(hasProjectedContent) {
             // Hook for child classes.
+        }
+
+        /**
+         *
+         * @param {HTMLTemplateElement | HTMLElement} node
+         * @returns {boolean}
+         */
+        #setIfProps(node) {
+            const propName = node.getAttribute(PROP_ATTR);
+            if (propName == undefined) return false;
+
+            node.removeAttribute(PROP_ATTR);
+            node.removeAttribute(SLOT_ATTR);
+
+            if (propName in this) {
+                this[propName] = node instanceof HTMLTemplateElement ? Array.from(node.content.childNodes) : node;
+            }
+
+            return true;
         }
 
         /**
@@ -210,8 +235,8 @@ export default function SlotCollectorMixin(Base) {
 
                 if (isTextNode)
                     node.remove(); // detach nodes
-                else if (node instanceof Element && !node.hasAttribute('hidden')) {
-                    node.setAttribute('hidden', '');
+                else if (node instanceof Element && !node.hasAttribute(HIDDEN_ATTR)) {
+                    node.setAttribute(HIDDEN_ATTR, '');
                     this.#hiddenByCollector.add(node);
                 }
 
@@ -228,7 +253,7 @@ export default function SlotCollectorMixin(Base) {
                     // this.#tempFragment.append(node); // detach nodes
                 }
             });
-            this.#hiddenByCollector.forEach(node => node?.removeAttribute('hidden'));
+            this.#hiddenByCollector.forEach(node => node?.removeAttribute(HIDDEN_ATTR));
             this.#hiddenByCollector = new Set();
         }
     };
@@ -238,6 +263,8 @@ export default function SlotCollectorMixin(Base) {
 
 const SLOT_TAG_NAME = 'slot';
 const SLOT_ATTR = 'slot';
+const PROP_ATTR = 'prop';
+const HIDDEN_ATTR = 'hidden';
 
 // template testleri
 // new testleri
