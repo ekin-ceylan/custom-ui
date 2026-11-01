@@ -162,13 +162,21 @@ export default function SlotCollectorMixin(Base) {
          */
         #setIfProps(node) {
             const propName = node.getAttribute(PROP_ATTR);
-            if (propName == undefined) return false;
+            if (propName === null) return false;
 
             node.removeAttribute(PROP_ATTR);
             node.removeAttribute(SLOT_ATTR);
 
             if (propName in this) {
-                this[propName] = node instanceof HTMLTemplateElement ? Array.from(node.content.childNodes) : node;
+                const componentClass = /** @type {typeof import('lit').LitElement} */ (this.constructor);
+                const { type } = componentClass.getPropertyOptions(propName);
+                const isTemplate = node instanceof HTMLTemplateElement;
+
+                if (type === String) {
+                    this[propName] = isTemplate ? node.innerHTML : node.outerHTML;
+                } else {
+                    this[propName] = isTemplate ? Array.from(node.content.childNodes) : node;
+                }
             }
 
             return true;

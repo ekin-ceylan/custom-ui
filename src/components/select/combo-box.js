@@ -68,6 +68,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
         const oldValue = this.#options;
         this.#options = [];
         this.#optionList = [];
+        /** @type {ComboOption} */
         let lastSelected = null;
 
         val.forEach(o => {
@@ -80,7 +81,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
         });
 
         this.#onSelect(lastSelected, false);
-        this.#initialValue = lastSelected?.value;
+        this.#initialValue = lastSelected?.value ?? null;
         this.requestUpdate('options', oldValue);
         if (this.open) this.setListPosition();
     }

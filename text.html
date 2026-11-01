@@ -20,10 +20,10 @@
 
     <body>
         <form>
-            <combo-box field-id="color" label="Color" placeholder="Pick">
-                <option value="r">Red</option>
-                <option value="g" selected>Green</option>
-            </combo-box>
+            <text-area id="textarea2" label="tekstarea" required>
+                <template prop="value" prop-type="string">5</template>
+                <template prop="description"><strong>Önemli:</strong> Açıklama metni.</template>
+            </text-area>
             <controller-test></controller-test>
             <br />
             <br />

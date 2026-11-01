@@ -2,6 +2,54 @@ import TextArea from '../../components/text-area/text-area.js';
 
 defineElement('text-area', TextArea);
 
+describe('Property content binding', () => {
+    it('serializes template content for an inherited String property while preserving whitespace and comments', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><template prop="value"> Hello <strong>world</strong><!-- preserved --> ! </template></text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe(' Hello <strong>world</strong><!-- preserved --> ! ');
+        expect(fixture.input.value).toBe(' Hello <strong>world</strong><!-- preserved --> ! ');
+    });
+
+    it('serializes a regular element without collector attributes and gives prop precedence', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><div prop="value" slot="description" data-test="content">Hello</div></text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('<div data-test="content">Hello</div>');
+        expect(fixture.input.value).toBe('<div data-test="content">Hello</div>');
+    });
+
+    it('preserves node binding for an Object property', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><strong prop="description">Hello</strong></text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.description).toBeInstanceOf(HTMLElement);
+        expect(fixture.host.querySelector('[data-role="description"] strong')).toBe(fixture.host.description);
+    });
+
+    it('preserves template node arrays across renders for an Object property', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><template prop="description">Hello <strong>world</strong></template></text-area>');
+        await fixture.host.updateComplete;
+        const nodes = fixture.host.description;
+
+        expect(Array.isArray(nodes)).toBe(true);
+        expect(nodes).toHaveLength(2);
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.description).toBe(nodes);
+        expect(fixture.host.querySelector('[data-role="description"]').textContent).toBe('Hello world');
+    });
+
+    it('preserves escaped text when serializing template content for a String property', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><template prop="value">&lt;p&gt;Hello &amp; world&lt;/p&gt;</template></text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('&lt;p&gt;Hello &amp; world&lt;/p&gt;');
+        expect(fixture.input.value).toBe('&lt;p&gt;Hello &amp; world&lt;/p&gt;');
+    });
+});
+
 describe('Component contract', () => {
     afterEach(() => {
         document.body.innerHTML = '';
