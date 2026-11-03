@@ -16,7 +16,7 @@ import Keys from '../../enums/Keys.js';
 export default class SelectBox extends OptionsControlBase {
     // #region STATICS, FIELDS, GETTERS
 
-#slotOptions = [];
+    #slotOptions = [];
     #cachedInput = undefined;
     #mouseFlag = false;
 
@@ -45,9 +45,9 @@ export default class SelectBox extends OptionsControlBase {
             }
 
             if (!this.placeholder && this.#optionList.length === 0 && option instanceof Option && isEmpty(option.value)) {
-            this.placeholder = option.displayText;
-        }
-});
+                this.placeholder = option.displayText;
+            }
+        });
 
         this.requestUpdate('options', oldValue);
         this.#syncValueAfterOptionsChange();
@@ -140,7 +140,10 @@ export default class SelectBox extends OptionsControlBase {
 
     /** @inheritdoc */
     afterSlotsBinded() {
-        if (this.#slotOptions.length > 0) this.options = this.#slotOptions;
+        if (this.#slotOptions.length > 0) {
+            this.options = this.#slotOptions;
+            this.#slotOptions = null;
+        }
     }
 
     /** @override @protected */
@@ -150,7 +153,7 @@ export default class SelectBox extends OptionsControlBase {
     }
 
     valueUpdated() {
-                if (this.inputElement?.value === this.value) return false;
+        if (this.inputElement?.value === this.value) return false;
         else if (!this.hasOptions) return true;
 
         this.inputElement.value = this.value;
@@ -331,3 +334,11 @@ export default class SelectBox extends OptionsControlBase {
             ${this.renderErrorMessage()}`;
     }
 }
+
+// klavye ile open bug var.
+// case: option ekleme ve güncelleme
+// obje içindeki to html e
+// hafıza belgesini oluştur, testcaselerini yaz içine, storybook dokümanı oluştur.
+
+// testcase: invlaid iken ok tuşlarıyla seçimi değiştirmek
+// testcase: readonly

@@ -1,3 +1,5 @@
+import { nodeToString } from '../modules/utilities';
+
 /**
  * @typedef {import('lit').LitElement} LitElement
  */
@@ -171,11 +173,12 @@ export default function SlotCollectorMixin(Base) {
                 const componentClass = /** @type {typeof import('lit').LitElement} */ (this.constructor);
                 const { type } = componentClass.getPropertyOptions(propName);
                 const isTemplate = node instanceof HTMLTemplateElement;
+                const nodes = isTemplate ? Array.from(node.content.childNodes) : [node];
 
                 if (type === String) {
-                    this[propName] = isTemplate ? node.innerHTML : node.outerHTML;
+                    this[propName] = nodes.map(nodeToString).join('');
                 } else {
-                    this[propName] = isTemplate ? Array.from(node.content.childNodes) : node;
+                    this[propName] = isTemplate ? nodes : node;
                 }
             }
 

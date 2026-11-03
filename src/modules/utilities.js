@@ -222,3 +222,23 @@ export function sanitizeHtml(raw) {
 
     return t.innerHTML;
 }
+
+const VOID_ELEMENTS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+
+/**
+ * Serializes a node like native textarea content: text is kept decoded, markup is rebuilt.
+ * Comments are dropped to match slot semantics (only Element and Text are slottable).
+ * @param {Node} node
+ * @returns {string}
+ */
+export function nodeToString(node) {
+    if (node instanceof Text) return node.data;
+    if (!(node instanceof Element)) return '';
+
+    const tag = node.localName;
+    const attrs = Array.from(node.attributes, a => ` ${a.name}="${a.value}"`).join('');
+    if (VOID_ELEMENTS.has(tag)) return `<${tag}${attrs}>`;
+
+    const children = node instanceof HTMLTemplateElement ? node.content.childNodes : node.childNodes;
+    return `<${tag}${attrs}>${Array.from(children, nodeToString).join('')}</${tag}>`;
+}

@@ -1,6 +1,6 @@
 import { html, nothing } from 'lit';
 import StandardControlBase from '../base/standard-control-base.js';
-import { isEmpty } from '../modules/utilities.js';
+import { isEmpty, nodeToString } from '../modules/utilities.js';
 
 /**
  * Base class for text area components. Provides common functionality for multi-line text input components.
@@ -104,15 +104,14 @@ export default class TextAreaBase extends StandardControlBase {
      * @protected
      */
     validateNode(node, slotName) {
-        if (slotName === 'default') {
-            return this.#validateDefaultNode(node);
-        }
+        if (slotName !== 'default') return true;
+        this.#slotContent += nodeToString(node);
 
-        return true;
+        return false;
     }
 
-    afterSlotsBinded(hasProjectedContent) {
-        if (hasProjectedContent && isEmpty(this.value)) {
+    afterSlotsBinded() {
+        if (!isEmpty(this.#slotContent)) {
             this.value = this.#slotContent;
         }
     }
@@ -135,26 +134,6 @@ export default class TextAreaBase extends StandardControlBase {
     // #endregion INTERNAL HOOKS
 
     // #region PRIVATE METHODS
-
-    /**
-     * Validates the content of a default slot node and updates the internal slot content accordingly.
-     * @param {HTMLElement|Text} node The node to validate.
-     * @returns {boolean}
-     */
-    #validateDefaultNode(node) {
-        if (!isEmpty(this.value)) {
-            console.warn('Value is already set via property. Ignoring slotted nodes.');
-            return false;
-        }
-
-        if (node.nodeType === Node.TEXT_NODE) {
-            this.#slotContent += node.textContent.trim() ?? '';
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            this.#slotContent += /** @type {HTMLElement} */ (node).outerHTML ?? '';
-        }
-
-        return false;
-    }
 
     // #endregion PRIVATE METHODS
 

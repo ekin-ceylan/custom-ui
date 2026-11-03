@@ -3,12 +3,12 @@ import TextArea from '../../components/text-area/text-area.js';
 defineElement('text-area', TextArea);
 
 describe('Property content binding', () => {
-    it('serializes template content for an inherited String property while preserving whitespace and comments', async () => {
-        const fixture = await initTestFixture('<text-area label="Description"><template prop="value"> Hello <strong>world</strong><!-- preserved --> ! </template></text-area>');
+    it('serializes template content for an inherited String property while preserving whitespace and dropping comments', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><template prop="value"> Hello <strong>world</strong><!-- dropped --> ! </template></text-area>');
         await fixture.host.updateComplete;
 
-        expect(fixture.host.value).toBe(' Hello <strong>world</strong><!-- preserved --> ! ');
-        expect(fixture.input.value).toBe(' Hello <strong>world</strong><!-- preserved --> ! ');
+        expect(fixture.host.value).toBe(' Hello <strong>world</strong> ! ');
+        expect(fixture.input.value).toBe(' Hello <strong>world</strong> ! ');
     });
 
     it('serializes a regular element without collector attributes and gives prop precedence', async () => {
@@ -41,12 +41,32 @@ describe('Property content binding', () => {
         expect(fixture.host.querySelector('[data-role="description"]').textContent).toBe('Hello world');
     });
 
-    it('preserves escaped text when serializing template content for a String property', async () => {
+    it('decodes escaped text when serializing template content for a String property', async () => {
         const fixture = await initTestFixture('<text-area label="Description"><template prop="value">&lt;p&gt;Hello &amp; world&lt;/p&gt;</template></text-area>');
         await fixture.host.updateComplete;
 
-        expect(fixture.host.value).toBe('&lt;p&gt;Hello &amp; world&lt;/p&gt;');
-        expect(fixture.input.value).toBe('&lt;p&gt;Hello &amp; world&lt;/p&gt;');
+        expect(fixture.host.value).toBe('<p>Hello & world</p>');
+        expect(fixture.input.value).toBe('<p>Hello & world</p>');
+    });
+
+    it.each([
+        ['template', '<template prop="value">a<!-- note -->b</template>', 'ab'],
+        ['template nested element', '<template prop="value"><span>a<!-- note -->b</span></template>', '<span>ab</span>'],
+        ['root element', '<span prop="value">a<!-- note -->b</span>', '<span>ab</span>'],
+    ])('drops comments from %s prop content', async (_name, markup, expected) => {
+        const fixture = await initTestFixture(`<text-area label="Description">${markup}</text-area>`);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe(expected);
+        expect(fixture.input.value).toBe(expected);
+    });
+
+    it('keeps escaped comment text from prop content as literal text', async () => {
+        const fixture = await initTestFixture('<text-area label="Description"><template prop="value">a&lt;!-- note --&gt;b</template></text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('a<!-- note -->b');
+        expect(fixture.input.value).toBe('a<!-- note -->b');
     });
 });
 
@@ -179,8 +199,17 @@ describe('Value and slot behavior', () => {
         document.body.innerHTML = '';
     });
 
-    it('uses value attribute as source of truth when provided', async () => {
+    it('replaces the value attribute initial value with default slot content', async () => {
         const fixture = await initTestFixture('<text-area label="Desc" value="preset">fallback</text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('fallback');
+        expect(fixture.input.value).toBe('fallback');
+    });
+
+    it('preserves the value attribute initial value when only named slot content exists', async () => {
+        const fixture = await initTestFixture('<text-area label="Desc" value="preset"><span slot="suffix">icon</span></text-area>');
+        await fixture.host.updateComplete;
 
         expect(fixture.host.value).toBe('preset');
         expect(fixture.input.value).toBe('preset');
@@ -198,6 +227,184 @@ describe('Value and slot behavior', () => {
 
         expect(fixture.host.value).toContain('<b>Hi</b>');
         expect(fixture.input.value).toContain('<b>Hi</b>');
+    });
+
+    it.each([
+        ['direct mixed content', ' Hello <b>world</b> ! ', false],
+        ['template siblings', ' First <b>second</b> third <i>fourth</i> last ', true],
+    ])('preserves %s in the same order and spacing as native textarea', async (_name, content, useTemplate) => {
+        const nativeContainer = document.createElement('div');
+        nativeContainer.innerHTML = `<textarea>${content}</textarea>`;
+        const native = nativeContainer.querySelector('textarea');
+        const markup = useTemplate ? `<template>${content}</template>` : content;
+        const fixture = await initTestFixture(`<text-area label="Desc">${markup}</text-area>`);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe(native.value);
+        expect(fixture.input.value).toBe(native.value);
+
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.value).toBe(native.value);
+    });
+
+    it('decodes character references like native textarea', async () => {
+        const content = '&lt;b&gt;Hello&lt;/b&gt; &amp; world';
+        const nativeContainer = document.createElement('div');
+        nativeContainer.innerHTML = `<textarea>${content}</textarea>`;
+        const native = nativeContainer.querySelector('textarea');
+        const fixture = await initTestFixture(`<text-area label="Desc">${content}</text-area>`);
+        await fixture.host.updateComplete;
+
+        expect(native.value).toBe('<b>Hello</b> & world');
+        expect(fixture.host.value).toBe(native.value);
+        expect(fixture.input.value).toBe(native.value);
+    });
+
+    it.each([
+        ['direct', 'a<!-- note -->b', 'ab'],
+        ['nested element', '<span>a<!-- note -->b</span>', '<span>ab</span>'],
+        ['template', '<template>a<!-- note -->b</template>', 'ab'],
+    ])('drops comments from %s default slot content', async (_name, markup, expected) => {
+        const fixture = await initTestFixture(`<text-area label="Desc">${markup}</text-area>`);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe(expected);
+        expect(fixture.input.value).toBe(expected);
+    });
+
+    it('keeps escaped comment text from default slot as literal text like native textarea', async () => {
+        const content = 'a&lt;!-- note --&gt;b';
+        const nativeContainer = document.createElement('div');
+        nativeContainer.innerHTML = `<textarea>${content}</textarea>`;
+        const native = nativeContainer.querySelector('textarea');
+        const fixture = await initTestFixture(`<text-area label="Desc">${content}</text-area>`);
+        await fixture.host.updateComplete;
+
+        expect(native.value).toBe('a<!-- note -->b');
+        expect(fixture.host.value).toBe(native.value);
+        expect(fixture.input.value).toBe(native.value);
+    });
+
+    it('preserves a prop-bound value when there is no default content', async () => {
+        const fixture = await initTestFixture('<text-area label="Desc" value="preset"><template prop="value"><b>Prop content</b></template></text-area>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('<b>Prop content</b>');
+        expect(fixture.input.value).toBe('<b>Prop content</b>');
+    });
+
+    it('replaces a value assigned before connection with default content', async () => {
+        const host = document.createElement('text-area');
+        host.setAttribute('label', 'Desc');
+        host.value = 'preset';
+        host.appendChild(document.createTextNode('Default content'));
+
+        try {
+            document.body.appendChild(host);
+            await host.updateComplete;
+            await host.updateComplete;
+
+            expect(host.value).toBe('Default content');
+            expect(host.inputElement.value).toBe('Default content');
+        } finally {
+            host.remove();
+        }
+    });
+
+    it.each([
+        ['direct', '   ', 'preset'],
+        ['template', '<template>   </template>', '   '],
+    ])('handles whitespace-only %s content according to collector rules', async (_name, markup, expected) => {
+        const fixture = await initTestFixture(`<text-area label="Desc" value="preset">${markup}</text-area>`);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe(expected);
+        expect(fixture.input.value).toBe(expected);
+    });
+});
+
+describe('Native textarea parity', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    /** @param {string} content */
+    function getNativeValue(content) {
+        const container = document.createElement('div');
+        container.innerHTML = `<textarea>${content}</textarea>`;
+        return container.querySelector('textarea').value;
+    }
+
+    /** @param {string} markup */
+    async function getComponentValue(markup) {
+        const fixture = await initTestFixture(`<text-area label="Desc">${markup}</text-area>`);
+        await fixture.host.updateComplete;
+        expect(fixture.input.value).toBe(fixture.host.value);
+        return fixture.host.value;
+    }
+
+    // [name, content, root-bound markup or null, include default slot]
+    const parityCases = [
+        ['plain text', 'Hello world', null, true],
+        ['encoded markup', '&lt;b&gt;Hello&lt;/b&gt; &amp; world', null, true],
+        ['bare & and >', 'a && b > c', null, true],
+        ['named and numeric entities', '&copy; &#169; &#xA9; &euro; &nbsp;|', null, true],
+        ['element with entity', '<b>A &amp; B</b>', '<b prop="value">A &amp; B</b>', true],
+        ['attributes with entities', '<a href="?a=1&amp;b=2" title="x &quot;y&quot;">link</a>', '<a prop="value" href="?a=1&amp;b=2" title="x &quot;y&quot;">link</a>', true],
+        ['nested elements', '<p class="x"><i>A</i> &lt;B&gt; <span>C &amp; D</span></p>', '<p prop="value" class="x"><i>A</i> &lt;B&gt; <span>C &amp; D</span></p>', true],
+        ['mixed text and elements', 'Önce <b>kalın</b> sonra &lt;i&gt;', null, true],
+        ['void elements', 'satır<br>satır<br><img src="x.png" alt="a &amp; b">', null, true],
+        ['root void element', '<img src="x.png" alt="a &amp; b">', '<img prop="value" src="x.png" alt="a &amp; b">', true],
+        ['encoded closing textarea', 'x &lt;/textarea&gt; y', null, true],
+        ['inner whitespace and line breaks', '  satır 1\n  satır 2  ', null, true],
+        ['script content', "<script>alert('x & y')</script>", null, true],
+        // Out-of-context <td> is dropped when parsed in a regular element, so only template preserves it.
+        ['context-dependent tag', '<td>hücre</td>', null, false],
+        // A top-level template in the default slot is unwrapped by the collector.
+        ['nested template', '<template><b>T</b></template>', null, false],
+    ];
+
+    describe.each(parityCases)('%s', (_name, content, rootMarkup, includeDefaultSlot) => {
+        it.runIf(includeDefaultSlot)('default slot matches native', async () => {
+            expect(await getComponentValue(content)).toBe(getNativeValue(content));
+        });
+
+        it('template prop binding matches native', async () => {
+            expect(await getComponentValue(`<template prop="value">${content}</template>`)).toBe(getNativeValue(content));
+        });
+
+        it.runIf(rootMarkup !== null)('root prop binding matches native', async () => {
+            expect(await getComponentValue(rootMarkup)).toBe(getNativeValue(content));
+        });
+    });
+
+    describe('documented deviations', () => {
+        it('normalizes tag and attribute casing because content is parsed as HTML', async () => {
+            const content = '<B CLASS=x>Hi</B>';
+            const expected = '<b class="x">Hi</b>';
+
+            expect(getNativeValue(content)).toBe(content);
+            expect(await getComponentValue(content)).toBe(expected);
+            expect(await getComponentValue(`<template prop="value">${content}</template>`)).toBe(expected);
+            expect(await getComponentValue('<B prop="value" CLASS=x>Hi</B>')).toBe(expected);
+        });
+
+        it('drops comments because they are not slottable', async () => {
+            const content = 'a<!-- note -->b';
+
+            expect(getNativeValue(content)).toBe(content);
+            expect(await getComponentValue(content)).toBe('ab');
+            expect(await getComponentValue(`<template prop="value">${content}</template>`)).toBe('ab');
+        });
+
+        it('keeps the leading line break that native textarea strips', async () => {
+            const content = '\nilk satır';
+
+            expect(getNativeValue(content)).toBe('ilk satır');
+            expect(await getComponentValue(`<template prop="value">${content}</template>`)).toBe(content);
+        });
     });
 });
 
