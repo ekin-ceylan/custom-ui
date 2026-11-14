@@ -29,7 +29,7 @@ export default class ComboOption extends ListboxItem {
      * @returns {string}
      */
     get displayText() {
-        return this.text || this.label || this.value;
+        return this.text || this.label || this.textContent || this.value;
     }
 
     /**
@@ -64,6 +64,7 @@ export default class ComboOption extends ListboxItem {
     constructor(data = {}) {
         super(data);
 
+        this.textContent = data.textContent ?? '';
         this.innerHTML = data.innerHTML ?? '';
         this.label = data.label ?? '';
         this.text = data.text ?? '';

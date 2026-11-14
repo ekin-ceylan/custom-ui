@@ -46,7 +46,7 @@ describe('Lookup - Options updates', () => {
         await fixture.host.updateComplete;
 
         expect(fixture.host.options).toHaveLength(4);
-        expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['g', 'd']);
+        expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['Alpha', 'g', 'd']);
     });
 
     it('LKP-202 throws when options is not an array', async () => {
@@ -57,27 +57,43 @@ describe('Lookup - Options updates', () => {
         }).toThrow(/options must be an array/i);
     });
 
-    it('LKP-203 ignores slotted options and warns when options are set by property', async () => {
+    it('LKP-203 replaces property options with slotted options without warning', async () => {
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const host = document.createElement('lookup-input');
         host.setAttribute('label', 'City');
-        document.body.append(host);
-        await host.updateComplete;
-
         host.options = ['Ankara'];
         const slottedOption = document.createElement('option');
         slottedOption.value = 'i';
         slottedOption.textContent = 'Istanbul';
-        expect(host.validateNode(slottedOption, 'default')).toBe(false);
+        host.append(slottedOption);
+        document.body.append(host);
+        await host.updateComplete;
+        host.filter = 'Istanbul';
+        await host.updateComplete;
 
-        expect(warnSpy).toHaveBeenCalledWith('Options are already set via property. Ignoring slotted nodes.');
+        expect(warnSpy).not.toHaveBeenCalled();
         expect(host.options).toHaveLength(1);
+        expect(host.options[0]).toBe(slottedOption);
+        expect(host.filteredOptions.map(option => option.value)).toEqual(['i']);
 
         warnSpy.mockRestore();
         host.remove();
     });
 
-    it('LKP-204 rejects unsupported slotted children and logs an error', async () => {
+    it('accepts selected property options before connection', async () => {
+        const host = document.createElement('lookup-input');
+        host.setAttribute('label', 'City');
+        host.options = [{ value: 'a', label: 'Ankara', selected: true }];
+        document.body.append(host);
+        await host.updateComplete;
+
+        expect(host.value).toBe('a');
+        expect(host.inputElement.value).toBe('a');
+        expect(host.selectedOption.value).toBe('a');
+        host.remove();
+    });
+
+    it('LKP-204 silently ignores unsupported slotted children', async () => {
         const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         const host = document.createElement('lookup-input');
         host.setAttribute('label', 'City');
@@ -87,11 +103,55 @@ describe('Lookup - Options updates', () => {
         document.body.append(host);
         await host.updateComplete;
 
-        expect(errorSpy).toHaveBeenCalledWith('Only `HTMLOptionElement` and `CustomOption` are allowed as children of `lookup-input`.');
+        expect(errorSpy).not.toHaveBeenCalled();
         expect(host.options).toHaveLength(0);
+        host.filter = 'anything';
+        await host.updateComplete;
+        expect(host.filteredOptions).toEqual([]);
 
         errorSpy.mockRestore();
         host.remove();
+    });
+
+    it('ignores null, boolean, and empty-valued entries while preserving zero', async () => {
+        const fixture = await initLookup('<lookup-input label="City"></lookup-input>');
+        fixture.host.options = [null, undefined, false, true, {}, '', { value: '' }, 0, { value: 'a', label: 'Ankara' }];
+        fixture.host.value = '0';
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.options).toEqual([0, { value: 'a', label: 'Ankara' }]);
+        expect(fixture.host.selectedOption.value).toBe('0');
+        expect(fixture.input.value).toBe('0');
+    });
+
+    it('clears options and selection when assigned an empty array', async () => {
+        const fixture = await initLookup('<lookup-input label="City"><option value="a" selected>Ankara</option></lookup-input>');
+        fixture.host.options = [];
+        fixture.host.filter = 'Ankara';
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.options).toEqual([]);
+        expect(fixture.host.filteredOptions).toEqual([]);
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+    });
+
+    it('resets to the selected option from replacement options', async () => {
+        const fixture = await initLookup('<lookup-input label="City"><option value="a" selected>Ankara</option></lookup-input>');
+        fixture.host.options = [
+            { value: 'i', label: 'Istanbul', selected: true },
+            { value: 'b', label: 'Bursa' },
+        ];
+        await fixture.host.updateComplete;
+        fixture.host.value = 'b';
+        await fixture.host.updateComplete;
+        await fixture.user.click(fixture.reset);
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('i');
+        expect(fixture.input.value).toBe('i');
+        expect(fixture.host.selectedOption.value).toBe('i');
     });
 
     it('LKP-205 preserves the selection when the value remains in the replacement options', async () => {
@@ -168,6 +228,115 @@ describe('Lookup - Options updates', () => {
 
         expect(fixture.host.open).toBe(true);
         expect(getOptionElements(fixture).map(option => option.dataset.value)).toEqual(['i', 'iz']);
+    });
+});
+
+describe('Lookup - Options normalization', () => {
+    it.each(['default slot', 'prop binding'])('LKP-209 normalizes template options through %s across renders', async source => {
+        const fixture = await initLookup(`
+            <lookup-input label="City">
+                <template ${source === 'prop binding' ? 'prop="options"' : ''}>
+                    Ignored text
+                    <!-- ignored comment -->
+                    <option value="a" selected>Ankara</option>
+                    <option value="i">Istanbul</option>
+                </template>
+            </lookup-input>
+        `);
+
+        for (let render = 0; render < 2; render++) {
+            fixture.host.filter = 'a';
+            await fixture.host.updateComplete;
+
+            expect(fixture.host.options).toHaveLength(2);
+            expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['a', 'i']);
+            expect(fixture.host.value).toBe('a');
+            expect(fixture.host.selectedOption.value).toBe('a');
+            expect(fixture.input.value).toBe('a');
+
+            fixture.host.requestUpdate();
+            await fixture.host.updateComplete;
+        }
+    });
+
+    it('LKP-210 accepts rich data-value content and derives display text from its content', async () => {
+        const fixture = await initLookup('<lookup-input label="City" value="a"><div data-value="a"><strong>Ankara</strong></div></lookup-input>');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('a');
+        expect(fixture.host.selectedOption).toEqual({ value: 'a', label: 'Ankara' });
+        expect(fixture.input.value).toBe('a');
+        expect(fixture.searchInput.value).toBe('Ankara');
+    });
+
+    it.each([
+        ['data-selected', '', 'i'],
+        ['data-selected', 'false', 'i'],
+        ['aria-selected', 'true', 'i'],
+        ['aria-selected', 'false', 'a'],
+    ])('LKP-211 interprets %s="%s" selection markers', async (attribute, value, expected) => {
+        const fixture = await initLookup(
+            `<lookup-input label="City"><div data-value="a" aria-selected="true">Ankara</div><div data-value="i" ${attribute}="${value}">Istanbul</div></lookup-input>`
+        );
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe(expected);
+        expect(fixture.host.selectedOption.value).toBe(expected);
+        expect(fixture.input.value).toBe(expected);
+    });
+
+    it('LKP-212 selects the last explicitly selected option and synchronizes rendered selection', async () => {
+        const fixture = await initLookup('<lookup-input label="City"><option value="a" selected>Ankara</option><option value="i" selected>Istanbul</option></lookup-input>');
+        await fixture.host.updateComplete;
+        expect(fixture.host.value).toBe('i');
+        expect(fixture.host.selectedOption.value).toBe('i');
+        expect(fixture.input.value).toBe('i');
+
+        fixture.host.filter = 'a';
+        await fixture.host.updateComplete;
+        const selected = getOptionElements(fixture).filter(option => option.getAttribute('aria-selected') === 'true');
+        expect(selected.map(option => option.dataset.value)).toEqual(['i']);
+    });
+
+    it('LKP-213 preserves focused search text and filters replacement options', async () => {
+        const fixture = await initLookup('<lookup-input lang="en" label="City"><option value="a" selected>Ankara</option></lookup-input>');
+        await fixture.user.clear(fixture.searchInput);
+        await typeSearch(fixture, 'iz');
+
+        fixture.host.options = [
+            { value: 'iz', label: 'Izmir' },
+            { value: 'r', label: 'Rize' },
+            { value: 'b', label: 'Bursa' },
+        ];
+        await fixture.host.updateComplete;
+
+        expect(document.activeElement).toBe(fixture.searchInput);
+        expect(fixture.host.filter).toBe('iz');
+        expect(fixture.searchInput.value).toBe('iz');
+        expect(fixture.host.open).toBe(true);
+        expect(getOptionElements(fixture).map(option => option.dataset.value)).toEqual(['iz', 'r']);
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+    });
+
+    it.each(['empty', 'unselected replacement'])('LKP-506 clears the previous reset target after %s options', async source => {
+        const fixture = await initLookup('<lookup-input label="City"><option value="a" selected>Ankara</option></lookup-input>');
+        fixture.host.options = source === 'empty' ? [] : [{ value: 'i', label: 'Istanbul' }];
+        await fixture.host.updateComplete;
+
+        if (source !== 'empty') {
+            fixture.host.value = 'i';
+            await fixture.host.updateComplete;
+        }
+        await fixture.user.click(fixture.reset);
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('');
+        expect(fixture.input.value).toBe('');
+        expect(fixture.host.selectedOption?.value).toBeUndefined();
+        expect(fixture.host.filter).toBe('');
+        expect(fixture.searchInput.value).toBe('');
     });
 });
 
@@ -359,6 +528,29 @@ describe('Lookup - Filtering and list behavior', () => {
         await typeSearch(fixture, 'i');
 
         expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['i']);
+    });
+
+    it.each([
+        ['direct slot', '<div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div>'],
+        ['default slot template', '<template><div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div></template>'],
+        ['prop template', '<template prop="options"><div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div></template>'],
+    ])('LKP-309 searches rich %s content without an explicit label', async (_source, markup) => {
+        const fixture = await initLookup(`<lookup-input lang="en" label="City">${markup}</lookup-input>`);
+
+        await typeSearch(fixture, 'ANK');
+
+        expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['ank']);
+        const options = getOptionElements(fixture);
+        expect(options.map(option => option.dataset.value)).toEqual(['ank']);
+        expect(options[0].querySelector('strong').textContent).toBe('Ankara');
+
+        await fixture.user.click(options[0]);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.host.selectedOption).toEqual({ value: 'ank', label: 'Ankara' });
+        expect(fixture.input.value).toBe('ank');
+        expect(fixture.searchInput.value).toBe('Ankara');
     });
 });
 
@@ -637,12 +829,17 @@ the component value must correspond to a selected option.
 
 * [x] LKP-201 — String, number, object, and HTMLOptionElement entries are converted to options.
 * [x] LKP-202 — A non-array options value throws a TypeError.
-* [x] LKP-203 — Slotted options are ignored with a warning when options are supplied by property.
-* [x] LKP-204 — Unsupported slotted children are rejected and reported.
+* [x] LKP-203 — Default slot options replace property options without warning.
+* [x] LKP-204 — Unsupported slotted children are silently ignored.
 * [x] LKP-205 — Replacing options preserves selection when the current value still exists.
 * [x] LKP-206 — Replacing options clears value and selection when the current value is removed.
 * [x] LKP-207 — Replacing options updates the rendered list while it is open.
 * [x] LKP-208 — An option marked selected in the replacement options becomes the selection.
+* [x] LKP-209 — Default-slot and prop-bound templates ignore text/comments and retain options across renders.
+* [ ] LKP-210 — Rich data-value content supplies the selected value and display text (test added; currently failing).
+* [x] LKP-211 — data-selected uses presence semantics; aria-selected uses true/false semantics.
+* [ ] LKP-212 — The last explicitly selected option wins and rendered selection stays synchronized (test added; currently failing).
+* [ ] LKP-213 — Replacing options while search is focused preserves the query and filters the new list (test added; currently failing).
 
 ## 3. Filtering and List Behavior
 
@@ -654,6 +851,7 @@ the component value must correspond to a selected option.
 * [x] LKP-306 — Blur restores the selected option's display text and runs validation.
 * [x] LKP-307 — The no-options state is shown when the filter has no matches.
 * [x] LKP-308 — Filtering uses the component's locale-specific casing rules.
+* [ ] LKP-309 — Rich options without an explicit label are searchable by their content text through direct slots, default-slot templates, and prop templates.
 
 ## 4. Selection Interaction
 
@@ -671,6 +869,7 @@ the component value must correspond to a selected option.
 * [x] LKP-503 — Invalid input displays and associates the validation message.
 * [x] LKP-504 — The selected value is included in FormData when name is set.
 * [x] LKP-505 — Reset restores the value attribute or initially selected option.
+* [x] LKP-506 — Empty or unselected replacement options clear the previous reset target.
 
 ## 6. Accessibility and Popover Lifecycle
 

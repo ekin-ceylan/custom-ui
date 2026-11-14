@@ -1,5 +1,5 @@
 import { html, nothing } from 'lit';
-import { findLastBy, ifDefined } from '../../modules/utilities.js';
+import { isEmpty, ifDefined } from '../../modules/utilities.js';
 import ComboOption from '../../models/ComboOption.js';
 import CustomOption from '../parts/custom-option.js';
 import Keys from '../../enums/Keys.js';
@@ -12,6 +12,8 @@ import ListboxMixin from '../../mixins/listbox-mixin.js';
  * Custom lookup component that extends OptionControlBase to provide a searchable dropdown list of options. It supports both native and custom behaviors, allowing for flexible usage in various contexts.
  * - Can be used after defining like `defineElement('lookup', Lookup)` or `customElement.define('lookup', Lookup)`.
  * - The `options` property accepts an array of option objects or HTMLOptionElements to populate the dropdown list.
+ * - Default slot content replaces property options. Null, unsupported, and empty-valued entries are ignored.
+ * - Form reset uses the value attribute, or the selected value from the latest options assignment.
  * - The `value` property reflects the currently selected option's value, and the `selectedOption` property provides the full option object.
  * - The component includes built-in filtering functionality, allowing users to search through options by typing in the input field.
  */
@@ -28,6 +30,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
         };
     }
 
+    #slotOptions = [];
     /** @type {ComboOption[]} */
     #optionList = [];
     /** @type {ComboOption | null} */
@@ -50,28 +53,44 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
 
         return this.#optionList?.filter(opt => {
             const searchValue = this.filter?.toLocaleLowerCase(this.lang) || '';
-            const optionText = opt.label.toLocaleLowerCase(this.lang);
+            const optionText = opt.displayText.toLocaleLowerCase(this.lang);
 
             return optionText.includes(searchValue);
         });
     }
 
     get options() {
-        return this.#options.length ? this.#options : this.#optionList; // SLOT ÜZERİNDEN GELİYORSA OPTIONS BOŞ OLUYOR !!
+        return this.#options.length ? this.#options : this.#optionList;
     }
     set options(val) {
         if (!Array.isArray(val)) {
             throw new TypeError('options must be an array');
         }
 
-        this.#options = val;
-        this.#optionList = this.options.map(this.#toListElement.bind(this));
+        const oldValue = this.#options;
+        this.#options = [];
+        this.#optionList = [];
+        /** @type {ComboOption} */
+        let lastSelected = null;
 
-        const opt = findLastBy(this.#optionList, opt => opt.selected);
-        this.#onSelect(opt || null, false, !this.#focused);
+        val.forEach(raw => {
+            const option = this.#toListElement(raw);
 
+            if (!isEmpty(option?.value)) {
+                this.#options.push(raw);
+                this.#optionList.push(option);
+
+                if (option.selected) {
+                    lastSelected && (lastSelected.selected = false);
+                    lastSelected = option;
+                }
+            }
+        });
+
+        this.#onSelect(lastSelected, false, !this.#focused);
+        this.#initialValue = lastSelected?.value ?? null;
+        this.requestUpdate('options', oldValue);
         if (this.open) this.setListPosition();
-        this.requestUpdate();
     }
 
     get searchId() {
@@ -84,7 +103,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
      */
     get inputElement() {
         if (this.#cachedInput == undefined) {
-            this.#cachedInput = this.renderRoot.querySelector('input[data-role="value"]');
+            this.#cachedInput = this.renderRoot?.querySelector('input[data-role="value"]');
         }
 
         return this.#cachedInput;
@@ -147,28 +166,13 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
     validateNode(node, slotName) {
         if (slotName != 'default') return true;
 
-        const hasOptions = this.#options?.length > 0;
-        const isAllowedType = node instanceof HTMLOptionElement || node instanceof CustomOption;
+        this.#slotOptions.push(node);
+        return false;
+    }
 
-        if (hasOptions) {
-            console.warn('Options are already set via property. Ignoring slotted nodes.');
-            return false;
-        }
-
-        if (!isAllowedType) {
-            console.error(`Only \`HTMLOptionElement\` and \`CustomOption\` are allowed as children of \`${this.tagName.toLowerCase()}\`.`);
-            return false;
-        }
-
-        const option = this.#parseOption(node);
-        this.#optionList.push(option);
-
-        if (option.selected) {
-            this.#initialValue = option.value;
-            this.#onSelect(option, false);
-        }
-
-        return false; // abort default slotting process
+    /** @inheritdoc */
+    afterSlotsBinded() {
+        if (this.#slotOptions.length > 0) this.options = this.#slotOptions;
     }
 
     /** @override @protected */
@@ -180,7 +184,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
     /** @override @protected */
     valueUpdated() {
         const matchedOption = this.#optionList.find(o => o.value == this.value) || null;
-        this.#onSelect(matchedOption, false);
+        this.#onSelect(matchedOption, false, !this.#focused);
         this.#checkValidity();
 
         return true;
@@ -282,7 +286,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
      */
     #onSelect(selectedOption, emitEvents = true, setFilter = true) {
         if (this.#selectedOption === selectedOption) {
-            this.inputElement.value = selectedOption?.value || '';
+            this.inputElement && (this.inputElement.value = selectedOption?.value || '');
             if (setFilter) this.filter = this.#selectedOption?.displayText || '';
             return;
         }
@@ -292,7 +296,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
 
         if (this.#selectedOption) this.#selectedOption.selected = true;
         this.selectedOption = { value: selectedOption?.value, label: selectedOption?.displayText };
-        this.inputElement.value = selectedOption?.value || '';
+        this.inputElement && (this.inputElement.value = selectedOption?.value || '');
         if (setFilter) this.filter = this.#selectedOption?.displayText || '';
         this.value = selectedOption?.value ?? '';
 
@@ -373,7 +377,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
     #parseOption(opt) {
         const option = new ComboOption(opt);
         option.id = `option-${generateUniqueId()}`;
-        if (this.value === opt.value) option.selected = true;
+        if (this.value === option.value) option.selected = true;
 
         return option;
     }
@@ -391,6 +395,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
     }
 
     #toListElement(raw) {
+        if (raw == null) return null;
         if (raw instanceof HTMLOptionElement || raw instanceof CustomOption || typeof raw === 'object') {
             return this.#parseOption(raw);
         }
@@ -400,7 +405,7 @@ export default class Lookup extends mixins(StandardControlBase, ListboxMixin) {
             return this.#parseOption(opt);
         }
 
-        throw new TypeError(`Invalid option entry: ${String(raw)}`);
+        return null;
     }
 
     // #endregion PRIVATE METHODS

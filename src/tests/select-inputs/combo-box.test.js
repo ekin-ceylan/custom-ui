@@ -476,6 +476,47 @@ describe('ComboBox - Filtering', () => {
     });
 });
 
+describe('ComboBox - Display text filtering', () => {
+    it.each([
+        ['direct slot', '<div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div>'],
+        ['default slot template', '<template><div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div></template>'],
+        ['prop template', '<template prop="options"><div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div></template>'],
+    ])('searches rich %s content without an explicit label', async (_source, markup) => {
+        const fixture = await initComboBox(`<combo-box label="City">${markup}</combo-box>`);
+        await openList(fixture);
+        await fixture.user.type(fixture.searchInput, 'ANK');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['ank']);
+        const options = getOptionDivs(fixture);
+        expect(options.map(option => option.dataset.value)).toEqual(['ank']);
+        expect(options[0].querySelector('strong').textContent).toBe('Ankara');
+
+        await fixture.user.click(options[0]);
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+        expect(fixture.host.selectedOption).toEqual({ value: 'ank', label: 'Ankara' });
+        expect(fixture.display.querySelector('strong').textContent).toBe('Ankara');
+    });
+
+    it('searches primitive option values alongside explicit labels', async () => {
+        const fixture = await initComboBox('<combo-box label="City"></combo-box>');
+        const option = document.createElement('option');
+        option.value = 'd';
+        option.textContent = 'Delta';
+        fixture.host.options = ['Alpha', 2, { value: 'g', label: 'Gamma' }, option];
+        await fixture.host.updateComplete;
+        await openList(fixture);
+        await fixture.user.type(fixture.searchInput, 'a');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.filteredOptions.map(option => option.value)).toEqual(['Alpha', 'g', 'd']);
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['Alpha', 'g', 'd']);
+    });
+});
+
 describe('ComboBox - Required validation', () => {
     it('shows required error after interaction when closed without selection', async () => {
         const fixture = await initComboBox(`

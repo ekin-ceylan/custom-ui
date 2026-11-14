@@ -53,7 +53,7 @@ export default class ComboBox extends mixins(StandardControlBase, ListboxMixin) 
 
         return this.#optionList?.filter(opt => {
             const searchValue = this.filter?.toLowerCase() || '';
-            const optionText = opt.label.toLowerCase();
+            const optionText = opt.displayText.toLowerCase();
 
             return optionText.includes(searchValue);
         });
