@@ -280,13 +280,12 @@ export default class RichTextEditor extends RichTextEditorBase {
         if (!this.#editor) return;
 
         let { from, to, empty } = this.#editor.state.selection;
-        const chain = this.#editor.chain().focus();
         const isLink = this.#editor.isActive('link');
         const isBlock = this.#editor.isActive('blockLink');
 
         // linkin içinde ama seçim yoksa seçimi genişlet
         if (isLink && empty) {
-            chain.extendMarkRange('link').run();
+            this.#editor.chain().extendMarkRange('link').run();
             const newSelection = this.#editor.state.selection;
             from = newSelection.from;
             to = newSelection.to;

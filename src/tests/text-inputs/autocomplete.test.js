@@ -245,7 +245,7 @@ describe('Autocomplete - List open / close / filtering', () => {
         expect(fixture.host.querySelector('[role="listbox"] [role="option"]')).toBeNull();
     });
 
-    it('AUT-206 ignores slotted suggestions when options are provided as a property', async () => {
+    it('AUT-206 replaces property suggestions with slotted suggestions without warning', async () => {
         const warningSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const host = document.createElement('auto-complete');
         host.setAttribute('label', 'City');
@@ -256,13 +256,14 @@ describe('Autocomplete - List open / close / filtering', () => {
         document.body.appendChild(host);
         await host.updateComplete;
         await new Promise(resolve => setTimeout(resolve, 0));
-        host.filter = 'a';
+        host.filter = 'ad';
         await host.updateComplete;
 
-        expect(warningSpy).toHaveBeenCalled();
-        expect(host.filteredOptions.map(option => option.suggestionText)).toEqual(['Ankara']);
+        expect(warningSpy).not.toHaveBeenCalled();
+        expect(host.filteredOptions.map(option => option.suggestionText)).toEqual(['Adana']);
 
         warningSpy.mockRestore();
+        host.remove();
     });
 
     it('AUT-207 accepts string and suggestionText object entries equivalently', async () => {
@@ -298,6 +299,77 @@ describe('Autocomplete - List open / close / filtering', () => {
         await fixture.host.updateComplete;
 
         expect(fixture.host.filteredOptions.map(option => option.suggestionText)).toEqual(['İzmir']);
+    });
+
+    it.each([
+        ['default slot template', '<template><suggestion-option><strong>Ankara</strong></suggestion-option></template>'],
+        ['prop-bound template', '<template prop="options"><suggestion-option><strong>Ankara</strong></suggestion-option></template>'],
+    ])('AUT-210 collects rich suggestion nodes from a %s across renders', async (_source, markup) => {
+        const fixture = await initTestFixture(`<auto-complete label="City">${markup}</auto-complete>`);
+
+        await fixture.user.type(fixture.input, 'an');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.filteredOptions.map(option => option.suggestionText)).toEqual(['Ankara']);
+        expect(fixture.host.querySelector('[role="option"] strong').textContent).toBe('Ankara');
+
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.filteredOptions.map(option => option.suggestionText)).toEqual(['Ankara']);
+        expect(fixture.host.querySelector('[role="option"] strong').textContent).toBe('Ankara');
+    });
+
+    it.each([
+        [
+            'default slot template',
+            '<template>\n    <suggestion-option>Alpha</suggestion-option>\n    <!-- ignored -->\n    <suggestion-option>Amber</suggestion-option>\n</template>',
+        ],
+        [
+            'prop-bound template',
+            '<template prop="options">\n    <suggestion-option>Alpha</suggestion-option>\n    <!-- ignored -->\n    <suggestion-option>Amber</suggestion-option>\n</template>',
+        ],
+    ])('AUT-211 preserves sibling order and ignores formatting nodes in a %s', async (_source, markup) => {
+        const fixture = await initTestFixture(`<auto-complete label="City">${markup}</auto-complete>`);
+
+        expect(fixture.host.options).toHaveLength(2);
+        await fixture.user.type(fixture.input, 'a');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.filteredOptions.map(option => option.suggestionText)).toEqual(['Alpha', 'Amber']);
+        expect(Array.from(fixture.host.querySelectorAll('[role="option"]'), option => option.textContent)).toEqual(['Alpha', 'Amber']);
+    });
+
+    it('AUT-212 clears suggestions and closes the list when options are emptied', async () => {
+        const fixture = await initTestFixture('<auto-complete label="City"></auto-complete>');
+        fixture.host.options = ['Alpha', 'Amber'];
+        await fixture.host.updateComplete;
+        await fixture.user.type(fixture.input, 'a');
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.open).toBe(true);
+        fixture.host.options = [];
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.options).toEqual([]);
+        expect(fixture.host.filteredOptions).toEqual([]);
+        expect(fixture.host.open).toBe(false);
+        expect(fixture.host.querySelector('[role="option"]')).toBeNull();
+    });
+
+    it.each([
+        ['direct slot', '<suggestion-option><strong onclick="void 0">Alpha</strong><script>void 0</script></suggestion-option>'],
+        ['default slot template', '<template><suggestion-option><strong onclick="void 0">Alpha</strong><script>void 0</script></suggestion-option></template>'],
+        ['prop-bound template', '<template prop="options"><suggestion-option><strong onclick="void 0">Alpha</strong><script>void 0</script></suggestion-option></template>'],
+    ])('AUT-213 sanitizes rich HTML from a %s while preserving safe formatting', async (_source, markup) => {
+        const fixture = await initTestFixture(`<auto-complete label="City">${markup}</auto-complete>`);
+        await fixture.user.type(fixture.input, 'a');
+        await fixture.host.updateComplete;
+
+        const option = fixture.host.querySelector('[role="option"]');
+        expect(option.querySelector('strong').textContent).toBe('Alpha');
+        expect(option.querySelector('strong').hasAttribute('onclick')).toBe(false);
+        expect(option.querySelector('script')).toBeNull();
     });
 });
 
@@ -665,10 +737,14 @@ describe('Autocomplete - Accessibility / Semantics', () => {
 * [x] AUT-203 — filterThreshold altındayken liste kapalı kalır.
 * [x] AUT-204 — Filtrelenmiş öneriler kaynak sırasını korur.
 * [x] AUT-205 — Eşleşen öneri yoksa liste kapalı kalır ve boş seçenek satırı gösterilmez.
-* [x] AUT-206 — options property ile slotted suggestion element'lerinin birlikte kullanımı doğru yönetilir.
+* [x] AUT-206 — options property ve default slot birlikte verilirse slot önerileri sessizce öncelik kazanır.
 * [x] AUT-207 — String öneri ile { suggestionText } girdisi aynı şekilde çalışır.
 * [x] AUT-208 — suggestionText verilmemiş SuggestionOption, textContent'ini suggestionText olarak kullanır.
 * [x] AUT-209 — Türkçe/Unicode metin startsWith filtrelemesinde korunur.
+* [x] AUT-210 — Default-slot ve prop-bound template içindeki rich SuggestionOption çocukları render edilir ve tekrar render'da korunur.
+* [ ] AUT-211 — Default-slot ve prop-bound template kardeş önerileri sıralı tutar ve whitespace/comment node'larını seçenek saymaz (test eklendi, şu an başarısız).
+* [ ] AUT-212 — options boş diziye çekilince önerileri temizler ve açık listeyi kapatır (test eklendi, şu an başarısız).
+* [x] AUT-213 — Rich HTML içeriği direct slot ve template yollarında güvenli biçimde sanitize edilir.
 
 ## 3. Keyboard Interaction / Selection
 

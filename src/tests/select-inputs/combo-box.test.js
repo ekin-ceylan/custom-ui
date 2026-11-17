@@ -746,6 +746,31 @@ describe('ComboBox - Options normalization', () => {
         expect(fixture.display.textContent.trim()).toBe('Ankara');
     });
 
+    it('ignores template text while retaining default-slot options across renders', async () => {
+        const fixture = await initComboBox(`
+            <combo-box label="City" placeholder="Pick a city">
+                <template>
+                    Ignored text
+                    <option value="ank" selected>Ankara</option>
+                    <option value="ist">Istanbul</option>
+                </template>
+            </combo-box>
+        `);
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+        expect(getOptionDivs(fixture).map(option => option.textContent.trim())).toEqual(['Ankara', 'Istanbul']);
+        expect(fixture.host.value).toBe('ank');
+        expect(fixture.input.value).toBe('ank');
+        expect(fixture.host.placeholder).toBe('Pick a city');
+
+        fixture.host.requestUpdate();
+        await fixture.host.updateComplete;
+
+        expect(getOptionDivs(fixture).map(option => option.dataset.value)).toEqual(['ank', 'ist']);
+        expect(fixture.display.textContent.trim()).toBe('Ankara');
+    });
+
     it('accepts rich slot content with data-value and matches the initial value', async () => {
         const fixture = await initComboBox(
             '<combo-box label="City" value="ank"><div data-value="ank"><strong>Ankara</strong></div><div data-value="ist">Istanbul</div></combo-box>'

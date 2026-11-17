@@ -4,7 +4,7 @@ import ListboxMixin from '../../mixins/listbox-mixin.js';
 import Suggestion from '../../models/Suggestion.js';
 import SuggestionOption from '../parts/suggestion-option.js';
 import Keys from '../../enums/Keys.js';
-import { ifDefined } from '../../modules/utilities.js';
+import { ifDefined, isEmpty } from '../../modules/utilities.js';
 import { mixins } from '../../modules/mixin-utils.js';
 import { generateUniqueId } from '../../modules/unique-id-generator.js';
 import MaskPlaceholderMixin from '../../mixins/mask-placeholder-mixin.js';
@@ -30,6 +30,7 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
         };
     }
 
+    #slotOptions = [];
     /** @type {Suggestion[]} */
     #optionList = [];
     /** @type {Array<object|string>} */
@@ -54,14 +55,28 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
         return this.#options.length ? this.#options : this.#optionList; // SLOT ÜZERİNDEN GELİYORSA OPTIONS BOŞ OLUYOR !!
     }
     set options(val) {
-        if (!Array.isArray(val)) {
-            throw new TypeError('options must be an array');
+        if (!Array.isArray(val)) throw new TypeError('options must be an array');
+
+        const oldValue = this.#options;
+        this.#options = [];
+        this.#optionList = [];
+
+        val.forEach(o => {
+            const option = this.#toListElement(o);
+
+            if (!isEmpty(option?.suggestionText.trim())) {
+                this.#options.push(o);
+                this.#optionList.push(option);
+            }
+        });
+
+        this.requestUpdate('options', oldValue);
+
+        if (this.filteredOptions.length === 0) {
+            this.closeList();
+            return;
         }
 
-        this.#options = val;
-        this.#optionList = this.options.map(this.#toListElement.bind(this));
-
-        this.requestUpdate();
         if (this.open) this.setListPosition();
     }
 
@@ -100,23 +115,13 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
     validateNode(node, slotName) {
         if (slotName != 'default') return true;
 
-        const hasOptions = this.#options?.length > 0;
-        const isAllowedType = node instanceof SuggestionOption;
+        this.#slotOptions.push(node);
+        return false;
+    }
 
-        if (hasOptions) {
-            console.warn('Options are already set via property. Ignoring slotted nodes.');
-            return false;
-        }
-
-        if (!isAllowedType) {
-            console.error(`Only \`SuggestionOption\` is allowed as children of \`${this.tagName.toLowerCase()}\`.`);
-            return false;
-        }
-
-        const option = this.#parseOption(node);
-        this.#optionList.push(option);
-
-        return false; // abort default slotting process
+    /** @inheritdoc */
+    afterSlotsBinded() {
+        if (this.#slotOptions.length > 0) this.options = this.#slotOptions;
     }
 
     // #endregion INTERNAL HOOKS
@@ -151,7 +156,7 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
 
         this.setListPosition();
         this.activeIndex = 0;
-        this.scrollToActive();
+        this.#scrollToActive();
     }
 
     /** @param {KeyboardEvent} e */
@@ -227,7 +232,7 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
         if (isArrowKey) {
             e.preventDefault();
             this.activeIndex = this.#getAdjacentIndex(keyCode === Keys.ARROW_DOWN);
-            this.scrollToActive();
+            this.#scrollToActive();
         } else if (keyCode === Keys.TAB || keyCode === Keys.ENTER) {
             e.preventDefault();
             this.#selectActiveOption();
@@ -271,6 +276,8 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
     }
 
     #toListElement(raw) {
+        if (raw?.nodeType === Node.COMMENT_NODE) return null;
+
         if (raw instanceof SuggestionOption || typeof raw === 'object') {
             return this.#parseOption(raw);
         }
@@ -281,6 +288,11 @@ export default class Autocomplete extends mixins(TextControlBase, ListboxMixin, 
         }
 
         throw new TypeError(`Invalid option entry: ${String(raw)}`);
+    }
+
+    #scrollToActive() {
+        this.scrollToActive();
+        this.inputMask = this.filteredOptions[this.activeIndex]?.suggestionText || '';
     }
 
     // #endregion PRIVATE METHODS

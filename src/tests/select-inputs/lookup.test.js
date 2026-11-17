@@ -229,6 +229,23 @@ describe('Lookup - Options updates', () => {
         expect(fixture.host.open).toBe(true);
         expect(getOptionElements(fixture).map(option => option.dataset.value)).toEqual(['i', 'iz']);
     });
+
+    it('LKP-214 keeps the open list and shows the no-options item when options are emptied', async () => {
+        const fixture = await initLookup('<lookup-input lang="en" label="City"><option value="i">Istanbul</option></lookup-input>');
+
+        await typeSearch(fixture, 'i');
+        expect(fixture.host.open).toBe(true);
+
+        fixture.host.options = [];
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.options).toEqual([]);
+        expect(fixture.host.filteredOptions).toEqual([]);
+        expect(fixture.host.open).toBe(true);
+        expect(fixture.listbox.getAttribute('aria-expanded')).toBe('true');
+        expect(getOptionElements(fixture)).toHaveLength(0);
+        expect(fixture.listbox.querySelector('[aria-disabled]')?.hidden).toBe(false);
+    });
 });
 
 describe('Lookup - Options normalization', () => {
@@ -835,6 +852,7 @@ the component value must correspond to a selected option.
 * [x] LKP-206 — Replacing options clears value and selection when the current value is removed.
 * [x] LKP-207 — Replacing options updates the rendered list while it is open.
 * [x] LKP-208 — An option marked selected in the replacement options becomes the selection.
+* [x] LKP-214 — Emptying options keeps the open list and shows the no-options item.
 * [x] LKP-209 — Default-slot and prop-bound templates ignore text/comments and retain options across renders.
 * [ ] LKP-210 — Rich data-value content supplies the selected value and display text (test added; currently failing).
 * [x] LKP-211 — data-selected uses presence semantics; aria-selected uses true/false semantics.
