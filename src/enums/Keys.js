@@ -10,6 +10,8 @@ const Keys = Object.freeze({
     ENTER: 'Enter',
     ESCAPE: 'Escape',
     HOME: 'Home',
+    PAGE_DOWN: 'PageDown',
+    PAGE_UP: 'PageUp',
     PROCESS: 'Process',
     SPACE: 'Space',
     TAB: 'Tab',

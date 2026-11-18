@@ -1,6 +1,7 @@
 import SelectBox from '../../components/select/select-box.js';
 import CustomOption from '../../components/parts/custom-option.js';
 import CustomOptgroup from '../../components/parts/custom-optgroup.js';
+import { userEvent as browserUser } from '@vitest/browser/context';
 
 defineElement('select-box', SelectBox);
 defineElement('custom-option', CustomOption);
@@ -99,6 +100,38 @@ describe('SelectBox - Accessibility (A11y) tests', () => {
 
         expect(fixture.input.getAttribute('aria-required')).toBe('false');
         expect(fixture.input.required).toBe(false);
+    });
+
+    it('reflects readonly changes on the native select without disabling it', async () => {
+        const fixture = await initSelectBox('<select-box label="Country" readonly></select-box>');
+
+        expect(fixture.input.getAttribute('aria-readonly')).toBe('true');
+        expect(fixture.input.disabled).toBe(false);
+        expect(document.activeElement).toBe(fixture.input);
+
+        fixture.host.readonly = false;
+        await fixture.host.updateComplete;
+        expect(fixture.input.hasAttribute('aria-readonly')).toBe(false);
+
+        fixture.host.readonly = true;
+        await fixture.host.updateComplete;
+        expect(fixture.input.getAttribute('aria-readonly')).toBe('true');
+    });
+});
+
+describe('SelectBox - indicator', () => {
+    it('hides the indicator only while readonly is enabled', async () => {
+        const fixture = await initSelectBox('<select-box label="Country"></select-box>');
+
+        expect(fixture.host.querySelector('[data-chevron]')).not.toBeNull();
+
+        fixture.host.readonly = true;
+        await fixture.host.updateComplete;
+        expect(fixture.host.querySelector('[data-chevron]')).toBeNull();
+
+        fixture.host.readonly = false;
+        await fixture.host.updateComplete;
+        expect(fixture.host.querySelector('[data-chevron]')).not.toBeNull();
     });
 });
 
@@ -861,7 +894,116 @@ describe('SelectBox - validateNode guards', () => {
     });
 });
 
+describe('SelectBox - readonly mouse behavior', () => {
+    it('prevents native opening on mouse click while retaining focus and value', async () => {
+        const fixture = await initSelectBox(`
+            <select-box label="Country" readonly>
+                <option value="tr" selected>Turkey</option>
+                <option value="de">Germany</option>
+            </select-box>
+        `);
+        let mouseDown;
+        let openEvents = 0;
+        fixture.host.addEventListener('mousedown', event => (mouseDown = event));
+        fixture.host.addEventListener('open', () => openEvents++);
+        fixture.submit.focus();
+
+        await browserUser.click(fixture.input);
+        expect(mouseDown.isTrusted).toBe(true);
+        expect(mouseDown.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(fixture.input);
+        expect(fixture.host.open).toBe(false);
+        expect(fixture.input.matches(':open')).toBe(false);
+        expect(openEvents).toBe(0);
+        expect(fixture.host.interacted).toBe(false);
+        expect(fixture.host.value).toBe('tr');
+        expect(fixture.input.value).toBe('tr');
+    });
+
+    it('allows normal mouse behavior again when readonly is removed', async () => {
+        const fixture = await initSelectBox('<select-box label="Country" readonly></select-box>');
+        const readonlyEvent = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+        fixture.input.dispatchEvent(readonlyEvent);
+        expect(readonlyEvent.defaultPrevented).toBe(true);
+        expect(fixture.host.open).toBe(false);
+
+        const rightClick = new MouseEvent('mousedown', { button: 2, bubbles: true, cancelable: true });
+        fixture.input.dispatchEvent(rightClick);
+        expect(rightClick.defaultPrevented).toBe(false);
+        expect(fixture.host.open).toBe(false);
+
+        fixture.host.readonly = false;
+        await fixture.host.updateComplete;
+        let editableEvent;
+        fixture.host.addEventListener('mousedown', event => (editableEvent = event), { once: true });
+        await browserUser.click(fixture.input);
+        expect(editableEvent.isTrusted).toBe(true);
+        expect(editableEvent.defaultPrevented).toBe(false);
+        expect(fixture.host.open).toBe(true);
+        expect(fixture.input.matches(':open')).toBe(true);
+        await browserUser.keyboard('{Escape}');
+    });
+});
+
 describe('SelectBox - keyboard and invalid handlers', () => {
+    it('prevents readonly selection keys while allowing navigation and shortcuts', async () => {
+        const fixture = await initSelectBox('<select-box label="X" readonly></select-box>');
+
+        for (const [key, code] of [
+            [' ', 'Space'],
+            ['Enter', 'Enter'],
+            ['ArrowUp', 'ArrowUp'],
+            ['ArrowDown', 'ArrowDown'],
+            ['ArrowLeft', 'ArrowLeft'],
+            ['ArrowRight', 'ArrowRight'],
+            ['Home', 'Home'],
+            ['End', 'End'],
+            ['PageUp', 'PageUp'],
+            ['PageDown', 'PageDown'],
+            ['g', 'KeyG'],
+        ]) {
+            const event = new KeyboardEvent('keydown', { key, code, bubbles: true, cancelable: true });
+            fixture.input.dispatchEvent(event);
+            expect(event.defaultPrevented, key).toBe(true);
+            expect(fixture.host.open).toBe(false);
+        }
+
+        for (const options of [{ key: 'Tab', code: 'Tab' }, { key: 'Escape', code: 'Escape' }, { key: 'a', code: 'KeyA', ctrlKey: true }]) {
+            const event = new KeyboardEvent('keydown', { ...options, bubbles: true, cancelable: true });
+            fixture.input.dispatchEvent(event);
+            expect(event.defaultPrevented, options.key).toBe(false);
+        }
+    });
+
+    it('keeps the selection unchanged with native keyboard input and restores normal interaction when readonly is removed', async () => {
+        const fixture = await initSelectBox(`
+            <select-box label="Country" readonly>
+                <option value="tr" selected>Turkey</option>
+                <option value="de">Germany</option>
+            </select-box>
+        `);
+        let changes = 0;
+        fixture.host.addEventListener('input', () => changes++);
+        fixture.host.addEventListener('change', () => changes++);
+
+        await browserUser.keyboard('{ArrowDown}g{End}{Home}{Enter} ');
+        expect(fixture.input.value).toBe('tr');
+        expect(fixture.host.value).toBe('tr');
+        expect(fixture.host.open).toBe(false);
+        expect(changes).toBe(0);
+
+        await browserUser.keyboard('{Tab}');
+        expect(document.activeElement).toBe(fixture.submit);
+        fixture.input.focus();
+
+        fixture.host.readonly = false;
+        await fixture.host.updateComplete;
+        await browserUser.keyboard('{ArrowDown}');
+        expect(fixture.input.value).toBe('de');
+        expect(fixture.host.value).toBe('de');
+        expect(changes).toBeGreaterThan(0);
+    });
+
     it('opens when Enter or Space is pressed on keydown', async () => {
         const fixture = await initSelectBox('<select-box id="x" label="X"></select-box>');
 

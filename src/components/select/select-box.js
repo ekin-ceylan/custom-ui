@@ -196,7 +196,15 @@ export default class SelectBox extends OptionsControlBase {
         this.#mouseFlag = false;
     }
 
-    #onMousedown(_e) {
+    #onMousedown(e) {
+        if (this.readonly) {
+            if (e.button === 0) {
+                e.preventDefault();
+                this.inputElement?.focus();
+            }
+            return;
+        }
+
         this.#mouseFlag = true;
         this.#setOpen(!this.open);
     }
@@ -206,6 +214,13 @@ export default class SelectBox extends OptionsControlBase {
      * @param {KeyboardEvent} e
      */
     #onKeydown(e) {
+        if (this.readonly) {
+            const isPrintableKey = Array.from(e.key).length === 1 && ((!e.ctrlKey && !e.altKey && !e.metaKey) || e.getModifierState('AltGraph'));
+            const isForbiddenKey = selectionKeys.has(e.code) || selectionKeys.has(e.key);
+            if (isForbiddenKey || isPrintableKey) e.preventDefault();
+            return;
+        }
+
         if (e.code === Keys.SPACE || e.code === Keys.ENTER) {
             this.#setOpen(true);
         }
@@ -313,6 +328,7 @@ export default class SelectBox extends OptionsControlBase {
                     aria-label=${ifDefined(this.hideLabel ? this.label : undefined)}
                     aria-errormessage=${ifDefined(this.required ? this.errorId : undefined)}
                     aria-required=${this.required ? 'true' : 'false'}
+                    aria-readonly=${ifDefined(this.readonly ? 'true' : undefined)}
                     aria-invalid=${ifDefined(this.ariaInvalid)}
                     @input=${this.#onInput}
                     @change=${this.#onChange}
@@ -329,11 +345,14 @@ export default class SelectBox extends OptionsControlBase {
                     ${this.renderNoOptions()} ${this.#optionList.map(option => option.htmlElement)}
                 </select>
 
-                ${this.renderClearButton()} ${this.renderIndicator()}
+                ${this.renderClearButton()} ${this.readonly ? nothing : this.renderIndicator()}
             </div>
             ${this.renderErrorMessage()}`;
     }
 }
+
+/** @type {Set<string>} */
+const selectionKeys = new Set([Keys.SPACE, Keys.ENTER, Keys.ARROW_UP, Keys.ARROW_DOWN, Keys.ARROW_LEFT, Keys.ARROW_RIGHT, Keys.HOME, Keys.END, Keys.PAGE_UP, Keys.PAGE_DOWN]);
 
 // klavye ile open bug var.
 // case: option ekleme ve güncelleme
