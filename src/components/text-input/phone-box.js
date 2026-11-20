@@ -83,17 +83,15 @@ export default class PhoneBox extends mixins(TextControlBase, MaskPlaceholderMix
      * @param {KeyboardEvent & { target: HTMLInputElement }} keyDownEvent - The keyboard event triggered on key down.
      * @override Validates the last character entered in the phone input. Ensures that only digits are allowed and the maximum length is not exceeded.
      */
-    validateLastChar(keyDownEvent) {
-        const val = keyDownEvent.target.value;
-        const key = keyDownEvent.key;
-        const caret = keyDownEvent.target.selectionStart;
-        const caretEnd = keyDownEvent.target.selectionEnd;
+    validateLastChar(event) {
+        if (!super.validateLastChar(event)) return false;
 
-        const newValue = (val.slice(0, caret) + key + val.slice(caretEnd)).replaceAll(/\D/g, '');
+        const { value, selectionStart, selectionEnd } = event.target;
+        const start = selectionStart ?? value.length;
+        const end = selectionEnd ?? start;
+        const nextValue = value.slice(0, start) + event.key + value.slice(end);
 
-        if (newValue.length > 11) return false; // Maksimum uzunluk 11 olmalı
-
-        return /\d/.test(keyDownEvent.key);
+        return nextValue.replace(/\D/g, '').length <= 11;
     }
 
     renderContainerContent() {

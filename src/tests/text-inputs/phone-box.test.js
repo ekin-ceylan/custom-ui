@@ -62,6 +62,15 @@ describe('PhoneBox: Masking tests', () => {
         expect(fixture.input.value).toBe('0(212) 123 45 67');
     });
 
+    it('does not replace the trailing digit when inserting at max length', async () => {
+        await fixture.user.type(fixture.input, '02121234567');
+        fixture.input.setSelectionRange(4, 4);
+
+        await fixture.user.keyboard('9');
+
+        expect(fixture.input.value).toBe('0(212) 123 45 67');
+    });
+
     it('handles backspace correctly', async () => {
         await fixture.user.type(fixture.input, '02121234567');
         await fixture.user.keyboard('{Backspace}');
