@@ -104,7 +104,7 @@ export default class RichTextEditor extends RichTextEditorBase {
         if (currentHtml !== newValue) {
             this.#editor.commands.setContent(newValue, { emitUpdate: false, parseOptions: { preserveWhitespace: true } });
             this.#onEditorUpdate(this.#editor);
-            this.#checkValidity(true);
+            this.#checkValidity(false);
 
             return true;
         }

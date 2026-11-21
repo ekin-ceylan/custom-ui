@@ -378,8 +378,12 @@ describe('Rich text editor - Form Integration', () => {
     });
 
     it('FORM-021 does not show a minlength error for an initial value attribute', async () => {
-        document.body.innerHTML = '<rich-text-editor label="Description" minlength="20" value="<p>Initial</p>"></rich-text-editor>';
-        const host = document.body.firstElementChild;
+        const container = document.createElement('div');
+        container.innerHTML = '<rich-text-editor label="Description" minlength="20" value="<p>Initial</p>"></rich-text-editor>';
+        const host = container.firstElementChild;
+        const onValidate = vi.fn();
+        host.addEventListener('validate', onValidate);
+        document.body.appendChild(container);
         await host.updateComplete;
         await new Promise(resolve => requestAnimationFrame(resolve));
         await host.updateComplete;
@@ -387,11 +391,16 @@ describe('Rich text editor - Form Integration', () => {
         expect(host.value).toBe('<p>Initial</p>');
         expect(getEditorElement(host).innerHTML).toBe('<p>Initial</p>');
         expect(host.querySelector('[data-role="error-message"]')).toBeNull();
+        expect(onValidate).not.toHaveBeenCalled();
     });
 
     it('FORM-022 does not show a minlength error for initial slot content', async () => {
-        document.body.innerHTML = '<rich-text-editor label="Description" minlength="20"><p>Initial</p></rich-text-editor>';
-        const host = document.body.firstElementChild;
+        const container = document.createElement('div');
+        container.innerHTML = '<rich-text-editor label="Description" minlength="20"><p>Initial</p></rich-text-editor>';
+        const host = container.firstElementChild;
+        const onValidate = vi.fn();
+        host.addEventListener('validate', onValidate);
+        document.body.appendChild(container);
         await host.updateComplete;
         await new Promise(resolve => requestAnimationFrame(resolve));
         await host.updateComplete;
@@ -399,6 +408,7 @@ describe('Rich text editor - Form Integration', () => {
         expect(host.value).toBe('<p>Initial</p>');
         expect(getEditorElement(host).innerHTML).toBe('<p>Initial</p>');
         expect(host.querySelector('[data-role="error-message"]')).toBeNull();
+        expect(onValidate).not.toHaveBeenCalled();
     });
 
     it('FORM-015 allows exceeding maxlength while editing and shows an error on blur', async () => {
@@ -429,16 +439,40 @@ describe('Rich text editor - Form Integration', () => {
         expect(fixture.host.value).toBe('<p>12345</p>');
     });
 
-    it('FORM-018 shows a maxlength error after a programmatic assignment', async () => {
+    it('FORM-018 defers a maxlength error after a programmatic assignment until validation', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="5"></rich-text-editor>');
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await fixture.host.updateComplete;
 
         fixture.host.value = '<p>123456</p>';
         await fixture.host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await fixture.host.updateComplete;
 
         expect(fixture.host.value).toBe('<p>123456</p>');
+        expect(fixture.error).toBeNull();
 
+        expect(fixture.host.checkValidity()).toBe(false);
         await fixture.host.updateComplete;
         expect(fixture.error.innerText).toContain('en fazla');
+    });
+
+    it('FORM-023 clears an existing maxlength error after a valid programmatic assignment', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" maxlength="10"></rich-text-editor>');
+
+        fixture.host.value = '<p>123456</p>';
+        await fixture.host.updateComplete;
+        expect(fixture.host.checkValidity()).toBe(false);
+        await fixture.host.updateComplete;
+        expect(fixture.error).not.toBeNull();
+
+        fixture.host.value = '<p>1</p>';
+        await fixture.host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await fixture.host.updateComplete;
+
+        expect(fixture.host.value).toBe('<p>1</p>');
+        expect(fixture.error).toBeNull();
     });
 
     it('FORM-016 removes the limit when maxlength is removed', async () => {
@@ -1397,11 +1431,12 @@ function getEditorElement(host) {
 * [x] FORM-015 — Editörde `maxlength` aşılabilir, blur sonrasında hata gösterilir.
 * [x] FORM-016 — `maxlength` kaldırıldığında limit kaldırılır.
 * [x] FORM-017 — Source textarea'da `maxlength` aşımı engellenir.
-* [x] FORM-018 — Programatik `maxlength` aşımında hata gösterilir.
+* [x] FORM-018 — Programatik `maxlength` aşımında hata, validasyon yapılana kadar gösterilmez.
 * [x] FORM-019 — `disabled` durumda source textarea üzerinden edit yapılamaz.
 * [x] FORM-020 — `readonly` durumda source textarea üzerinden edit yapılamaz.
 * [x] FORM-021 — `minlength` altındaki başlangıç `value` değeri için hata mesajı gösterilmez.
 * [x] FORM-022 — `minlength` altındaki başlangıç slot içeriği için hata mesajı gösterilmez.
+* [x] FORM-023 — Geçerli programatik atama mevcut `maxlength` hatasını temizler.
 
 ---
 

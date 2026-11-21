@@ -143,6 +143,39 @@ describe('Validation tests', () => {
 
         expect(fixture.error).toBeNull();
     });
+
+    it('defers a programmatic maxlength error and clears it when the value becomes valid', async () => {
+        fixture = await initTestFixture('<text-area label="Description" maxlength="5"></text-area>');
+        fixture.host.value = '123456';
+        await fixture.host.updateComplete;
+
+        expect(fixture.input.value).toBe('123456');
+        expect(fixture.error).toBeNull();
+        expect(fixture.host.checkValidity()).toBe(false);
+        await fixture.host.updateComplete;
+        expect(fixture.error).not.toBeNull();
+
+        fixture.host.value = '1234';
+        await fixture.host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await fixture.host.updateComplete;
+        expect(fixture.error).toBeNull();
+    });
+
+    it.each(['input', 'textarea'])('native %s does not enforce length constraints on programmatic values', tag => {
+        const input = document.createElement(tag);
+        input.minLength = 5;
+        input.maxLength = 5;
+
+        input.value = '123456';
+        expect(input.value).toBe('123456');
+        expect(input.validity.tooLong).toBe(false);
+        expect(input.checkValidity()).toBe(true);
+
+        input.value = '123';
+        expect(input.validity.tooShort).toBe(false);
+        expect(input.checkValidity()).toBe(true);
+    });
 });
 
 describe('Character counter tests', () => {
@@ -197,6 +230,45 @@ describe('Character counter tests', () => {
 describe('Value and slot behavior', () => {
     afterEach(() => {
         document.body.innerHTML = '';
+    });
+
+    it('does not show a minlength error for an initial value attribute', async () => {
+        document.body.innerHTML = '<text-area label="Description" minlength="20" value="<p>Initial</p>"></text-area>';
+        const host = document.body.firstElementChild;
+        await host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await host.updateComplete;
+
+        expect(host.value).toBe('<p>Initial</p>');
+        expect(host.inputElement.value).toBe('<p>Initial</p>');
+        expect(host.querySelector('[data-role="error-message"]')).toBeNull();
+    });
+
+    it('does not show a minlength error for initial slot content', async () => {
+        document.body.innerHTML = '<text-area label="Description" minlength="20"><p>Initial</p></text-area>';
+        const host = document.body.firstElementChild;
+        await host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await host.updateComplete;
+
+        expect(host.value).toBe('<p>Initial</p>');
+        expect(host.inputElement.value).toBe('<p>Initial</p>');
+        expect(host.querySelector('[data-role="error-message"]')).toBeNull();
+    });
+
+    it.each([
+        ['value attribute', '<text-area label="Description" minlength="20" value="Initial"></text-area>'],
+        ['slot', '<text-area label="Description" minlength="20">Initial</text-area>'],
+    ])('does not show a minlength error for initial plain text from %s', async (_source, markup) => {
+        document.body.innerHTML = markup;
+        const host = document.body.firstElementChild;
+        await host.updateComplete;
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        await host.updateComplete;
+
+        expect(host.value).toBe('Initial');
+        expect(host.inputElement.value).toBe('Initial');
+        expect(host.querySelector('[data-role="error-message"]')).toBeNull();
     });
 
     it('replaces the value attribute initial value with default slot content', async () => {
@@ -601,6 +673,9 @@ VALIDATION
 5. validation is checked immediately after becoming invalid and while editing to valid state
 6. if required field is cleared after interaction, validation appears immediately
 7. valueUpdated path triggers validation refresh for programmatic value changes
+8. minlength: initial value attribute below the minimum does not immediately show an error
+9. minlength: initial slot content below the minimum does not immediately show an error
+10. programmatic maxlength errors are deferred and existing errors clear when the value becomes valid
 
 EVENTS
 1. input event updates host.value and dispatches custom input event
