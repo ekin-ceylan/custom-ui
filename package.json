@@ -1,6 +1,6 @@
 {
     "name": "custom-ui",
-    "version": "0.9.18",
+    "version": "0.9.19",
     "title": "Custom UI",
     "description": "Custom UI: Field/data-type specific, accessible, extensible Web Components.",
     "author": "Ekin Ceylan <ekinceylan@gmail.com> (https://github.com/ekin-ceylan)",
@@ -65,6 +65,7 @@
         "format": "prettier --write \"src/**/*.{ts,js,html,css}\"",
         "lint": "prettier --check \"src/**/*.{ts,js,html,css}\"",
         "test": "vitest run -c vitest.config.js",
+        "test:nocache": "vitest run -c vitest.config.js --no-cache",
         "test:watch": "vitest --watch -c vitest.config.js",
         "test:coverage": "vitest run --coverage -c vitest.config.js",
         "prepublishOnly": "npm run test && npm run build",

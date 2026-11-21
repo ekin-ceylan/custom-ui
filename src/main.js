@@ -1,4 +1,5 @@
 import TextBox from './components/text-input/text-box';
+import SuggestionOption from './components/parts/suggestion-option.js';
 import TextArea from './components/text-area/text-area.js';
 import RichTextEditor from './addons/rich-text/rich-text-editor.js';
 import PhoneBox from './components/text-input/phone-box';
@@ -47,6 +48,7 @@ defineComponent('range-select', RangeSelect);
 defineComponent('modal-dialog', ModalDialog);
 defineComponent('look-up', Lookup);
 defineComponent('tc-box', TcBox);
+defineComponent('suggestion-option', SuggestionOption);
 defineComponent('rich-text-editor', RichTextEditor);
 defineComponent('text-area', TextArea);
 defineComponent('controller-test', ControllerTest);
