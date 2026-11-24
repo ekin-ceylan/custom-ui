@@ -396,7 +396,7 @@ export default class RichTextEditor extends RichTextEditorBase {
                     data-role="source"
                     tabindex=${this.showSourceCode ? nothing : '-1'}
                 ></textarea>
-                ${this.renderEditorDiv(this.#editor)} ${this.renderPlaceholder()} ${this.renderClearButton()} ${this.renderDescription()}
+                ${this.renderEditorDiv(this.#editor)} ${this.renderPlaceholder()} ${this.renderClearButton()} ${this.renderDescription()} ${this.renderCounter()}
             </div>
             ${this.#linkForm.renderTemplate()} ${this.#imageForm.renderTemplate()} ${this.renderErrorMessage()}`;
     }

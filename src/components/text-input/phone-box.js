@@ -80,7 +80,7 @@ export default class PhoneBox extends mixins(TextControlBase, MaskPlaceholderMix
     }
 
     /**
-     * @param {KeyboardEvent & { target: HTMLInputElement }} keyDownEvent - The keyboard event triggered on key down.
+     * @param {KeyboardEvent & { target: HTMLInputElement }} event - The keyboard event triggered on key down.
      * @override Validates the last character entered in the phone input. Ensures that only digits are allowed and the maximum length is not exceeded.
      */
     validateLastChar(event) {

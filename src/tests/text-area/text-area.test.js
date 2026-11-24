@@ -184,7 +184,7 @@ describe('Character counter tests', () => {
         const counter = fixture.querySelector('[data-role="counter"]');
 
         expect(counter).not.toBeNull();
-        expect(counter.textContent.trim()).toBe('5');
+        expect(counter.textContent.trim()).toBe('0/5');
     });
 
     it('updates counter based on maxlength while typing', async () => {
@@ -193,7 +193,7 @@ describe('Character counter tests', () => {
 
         const counter = fixture.querySelector('[data-role="counter"]');
         expect(counter).not.toBeNull();
-        expect(counter.textContent.trim()).toBe('3');
+        expect(counter.textContent.trim()).toBe('2/5');
     });
 
     it('renders counter and counts forward when maxlength is not set', async () => {
@@ -211,8 +211,9 @@ describe('Character counter tests', () => {
     });
 
     it.each([
-        ['5', 'abc', '2', 'updates counter when value is set programmatically with maxlength'],
-        ['5', 'abcdef', '-1', 'shows negative counter when programmatic value exceeds maxlength'],
+        ['5', 'abc', '3/5', 'shows count and limit when value is set programmatically with maxlength'],
+        ['5', 'abcdef', '6/5', 'shows count beyond the limit when programmatic value exceeds maxlength'],
+        ['0', '', '0/0', 'shows a zero maxlength'],
         ['', 'abcd', '4', 'updates counter when value is set programmatically without maxlength'],
     ])('$3', async (maxlength, input, expected) => {
         const maxAttr = maxlength ? `maxlength="${maxlength}"` : '';

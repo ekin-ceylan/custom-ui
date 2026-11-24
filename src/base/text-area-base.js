@@ -47,16 +47,14 @@ export default class TextAreaBase extends StandardControlBase {
     }
 
     /**
-     * The text to be displayed in the character counter, based on the current value length and the maxlength attribute.
-     * By default, if maxlength is set, it shows the remaining characters; otherwise, it shows the current length.
-     * It can be overridden by subclasses to provide custom counter text logic.
+     * The value length and, when set, maxlength in the format "count/limit".
+     * Without maxlength, only the value length is returned.
      * @returns {string}
      */
     get counterText() {
         const valueLength = this.value?.length ?? 0;
-        const counter = this.maxlength > 0 ? this.maxlength - valueLength : valueLength;
 
-        return `${counter}`;
+        return this.maxlength == null ? `${valueLength}` : `${valueLength}/${this.maxlength}`;
     }
 
     get descriptionId() {
@@ -84,7 +82,7 @@ export default class TextAreaBase extends StandardControlBase {
     constructor() {
         super();
 
-        /** @type {boolean} Whether the character counter is shown when maxlength is set */
+        /** @type {boolean} Whether the character counter is shown */
         this.showCounter = false;
         /** @type {string | HTMLElement | Text | undefined} The description text or HTML element for the textarea */
         this.description = undefined;

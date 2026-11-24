@@ -489,6 +489,47 @@ describe('Rich text editor - Form Integration', () => {
     });
 });
 
+describe('Rich text editor - Character counter', () => {
+    afterEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    it('renders the HTML value length and maxlength when set', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" show-counter maxlength="5" value="<p>ab</p>"></rich-text-editor>');
+
+        const counter = fixture.querySelector('[data-role="counter"]');
+        expect(counter).not.toBeNull();
+        expect(counter.textContent.trim()).toBe('9/5');
+    });
+
+    it('updates the counter when rich text is edited', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" show-counter maxlength="20"></rich-text-editor>');
+        await fixture.user.type(getEditorElement(fixture), 'ab');
+        await fixture.host.updateComplete;
+
+        const counter = fixture.querySelector('[data-role="counter"]');
+        expect(counter.textContent.trim()).toBe('9/20');
+    });
+
+    it('counts the HTML value forward without maxlength', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" show-counter value="<p><strong>ab</strong></p>"></rich-text-editor>');
+
+        const counter = fixture.querySelector('[data-role="counter"]');
+        expect(counter).not.toBeNull();
+        expect(counter.textContent.trim()).toBe('26');
+    });
+
+    it('updates the counter programmatically', async () => {
+        const fixture = await initTestFixture('<rich-text-editor label="Description" show-counter maxlength="30"></rich-text-editor>');
+
+        fixture.host.value = '<p><strong>abc</strong></p>';
+        await fixture.host.updateComplete;
+
+        const counter = fixture.querySelector('[data-role="counter"]');
+        expect(counter.textContent.trim()).toBe('27/30');
+    });
+});
+
 describe('Rich text editor - Links', () => {
     afterEach(() => {
         document.querySelectorAll('[data-role="rich-text-link-form"], [data-role="rich-text-image-form"]').forEach(form => unlockAllScrolls(form));
