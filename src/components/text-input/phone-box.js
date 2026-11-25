@@ -53,13 +53,14 @@ export default class PhoneBox extends mixins(TextControlBase, MaskPlaceholderMix
      */
     mask(value) {
         if (isEmpty(value)) return value;
+
         value = value.replaceAll(/\D/g, ''); // Sayı olmayan karakterleri kaldır
 
         if (value.length >= 12) {
             value = value.replace(/^0{0,2}9/, ''); // Ülke kodunu kaldır
         }
 
-        value = value.match(/^0?\d{1,10}/)?.[0] || ''; // Geçerli kısmı al
+        value = new RegExp(/^0?\d{1,10}/).exec(value)?.[0] || ''; // Geçerli kısmı al
 
         if (value.length > 0 && !value.startsWith('0')) {
             value = '0' + value;
@@ -67,6 +68,7 @@ export default class PhoneBox extends mixins(TextControlBase, MaskPlaceholderMix
 
         if (value.length > 1) {
             const pattern = /(\d)?(\d{1,3})?(\d{1,3})?(\d{1,2})?(\d{1,2})?/;
+
             value = value.replace(pattern, (_, a, b, c, d, e) => {
                 let area = b?.length > 0 ? `(${b}` : '';
                 area += b?.length === 3 ? ')' : '';
