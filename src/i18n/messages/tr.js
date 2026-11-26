@@ -21,6 +21,7 @@ export const trMessages = {
     revealPasswordAriaLabel: 'Şifreyi göster',
     hidePasswordAriaLabel: 'Şifreyi gizle',
     clearButtonAriaLabel: 'Değeri temizle',
+    counterTitle: 'Karakter sayısı',
     noOptionsLabel: 'Kayıt Bulunamadı',
     undoButtonTitle: 'Geri al',
     redoButtonTitle: 'Yinele',

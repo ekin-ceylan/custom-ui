@@ -1,4 +1,5 @@
 import TextArea from '../../components/text-area/text-area.js';
+import { getLocale, setLocale } from '../../i18n/locale.js';
 
 defineElement('text-area', TextArea);
 
@@ -179,6 +180,33 @@ describe('Validation tests', () => {
 });
 
 describe('Character counter tests', () => {
+    it.each([
+        ['tr', '', 'Karakter sayısı'],
+        ['tr', 'maxlength="5"', 'Karakter sayısı'],
+        ['en', '', 'Character count'],
+        ['en', 'maxlength="5"', 'Character count'],
+    ])('renders the localized counter title for %s with %s', async (lang, maxAttr, title) => {
+        const fixture = await initTestFixture(`<text-area lang="${lang}" label="Description" show-counter ${maxAttr}></text-area>`);
+
+        expect(fixture.querySelector('[data-role="counter"]').title).toBe(title);
+    });
+
+    it('updates the counter title when the locale changes', async () => {
+        const previousLocale = getLocale();
+        const fixture = await initTestFixture('<text-area lang="en" label="Description" show-counter maxlength="5"></text-area>');
+
+        try {
+            expect(fixture.querySelector('[data-role="counter"]').title).toBe('Character count');
+            fixture.host.setAttribute('lang', 'tr');
+            setLocale('tr');
+            await fixture.host.updateComplete;
+
+            expect(fixture.querySelector('[data-role="counter"]').title).toBe('Karakter sayısı');
+        } finally {
+            setLocale(previousLocale);
+        }
+    });
+
     it('renders counter when show-counter and maxlength are set', async () => {
         const fixture = await initTestFixture('<text-area label="Description" show-counter maxlength="5"></text-area>');
         const counter = fixture.querySelector('[data-role="counter"]');

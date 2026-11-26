@@ -146,7 +146,7 @@ export default class TextAreaBase extends StandardControlBase {
      */
     renderCounter() {
         if (!this.showCounter) return nothing;
-        return html`<span data-role="counter" aria-live="polite">${this.counterText}</span>`;
+        return html`<span data-role="counter" aria-live="polite" title=${this.localeMessages.counterTitle}>${this.counterText}</span>`;
     }
 
     /**

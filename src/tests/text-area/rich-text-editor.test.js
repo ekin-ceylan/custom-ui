@@ -494,6 +494,12 @@ describe('Rich text editor - Character counter', () => {
         document.body.innerHTML = '';
     });
 
+    it('renders a localized title for the HTML value counter', async () => {
+        const fixture = await initTestFixture('<rich-text-editor lang="tr" label="Description" show-counter maxlength="5"></rich-text-editor>');
+
+        expect(fixture.querySelector('[data-role="counter"]').title).toBe('Karakter sayısı');
+    });
+
     it('renders the HTML value length and maxlength when set', async () => {
         const fixture = await initTestFixture('<rich-text-editor label="Description" show-counter maxlength="5" value="<p>ab</p>"></rich-text-editor>');
 

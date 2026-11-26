@@ -21,6 +21,7 @@ export const enMessages = {
     revealPasswordAriaLabel: 'Show password',
     hidePasswordAriaLabel: 'Hide password',
     clearButtonAriaLabel: 'Clear value',
+    counterTitle: 'Character count',
     noOptionsLabel: 'No Records Found',
     undoButtonTitle: 'Undo',
     redoButtonTitle: 'Redo',

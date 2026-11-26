@@ -83,6 +83,9 @@ export interface LocaleMessages {
      */
     clearButtonAriaLabel: string;
 
+    /** Title for the character counter. */
+    counterTitle: string;
+
     /**
      * Aria label for the password strength indicator.
      * Example: "Password strength"

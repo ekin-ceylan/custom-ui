@@ -129,7 +129,10 @@ export default class LightComponentBase extends mixins(LitElement, SlotCollector
         this.#lang = this.getAttribute('lang') || this.closest('[lang]')?.getAttribute('lang');
     }
 
-    #onLocaleChange = () => this.#setLocale();
+    #onLocaleChange = () => {
+        this.#setLocale();
+        this.requestUpdate();
+    };
 }
 
 // güvenli sorgu yardımcısı eklenebilir.
